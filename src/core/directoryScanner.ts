@@ -1,10 +1,15 @@
 import { isPathIgnored } from '../utils/ignoreFilter';
 import type { FileEntry } from '../utils/diffMatcher';
+import { computeHash } from '../utils/fileHasher';
 
 export interface ScanOptions {
   ignorePatterns?: string[];
+  computeHashes?: boolean;
   onProgress?: (scannedCount: number, currentPath: string) => void;
 }
+
+// Maximum file size for complete in-memory hashing (50 MB)
+const MAX_HASH_SIZE_BYTES = 50 * 1024 * 1024;
 
 /**
  * Prompts the user to select a directory using showDirectoryPicker().
@@ -27,14 +32,14 @@ export async function openDirectoryWithPicker(): Promise<FileSystemDirectoryHand
 
 /**
  * Recursively scans a FileSystemDirectoryHandle and collects FileEntry items.
- * Note: To guard against browser tab memory limits, file contents are not loaded
- * into memory during scanning; only metadata and handles are retained.
+ * Computes SHA-256 hashes off the main thread to enable strict content comparison.
  */
 export async function scanDirectoryHandle(
   dirHandle: FileSystemDirectoryHandle,
   options: ScanOptions = {}
 ): Promise<FileEntry[]> {
   const entries: FileEntry[] = [];
+  const shouldHash = options.computeHashes ?? true;
   let count = 0;
 
   async function traverse(currentDir: FileSystemDirectoryHandle, currentPath: string) {
@@ -57,12 +62,22 @@ export async function scanDirectoryHandle(
           options.onProgress(count, relativePath);
         }
 
+        let hash: string | undefined;
+        if (shouldHash && file.size <= MAX_HASH_SIZE_BYTES) {
+          try {
+            hash = await computeHash(file);
+          } catch (err) {
+            console.warn(`Failed to compute hash for ${relativePath}:`, err);
+          }
+        }
+
         entries.push({
           path: relativePath,
           name: file.name,
           size: file.size,
           lastModified: file.lastModified,
           handle: fileHandle,
+          hash,
         });
       }
     }
@@ -80,14 +95,52 @@ export async function scanDirectoryHandle(
  * Parses a FileList (e.g. from <input type="file" webkitdirectory>) into FileEntry[]
  * Used as a fallback for browsers like Safari and Firefox that do not support directory pickers.
  */
+export async function parseFileListAsync(files: FileList, options: ScanOptions = {}): Promise<FileEntry[]> {
+  const entries: FileEntry[] = [];
+  const shouldHash = options.computeHashes ?? true;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    let relativePath = file.webkitRelativePath || file.name;
+    const firstSlash = relativePath.indexOf('/');
+    if (firstSlash !== -1) {
+      relativePath = relativePath.slice(firstSlash + 1);
+    }
+
+    if (isPathIgnored(relativePath, options.ignorePatterns)) {
+      continue;
+    }
+
+    let hash: string | undefined;
+    if (shouldHash && file.size <= MAX_HASH_SIZE_BYTES) {
+      try {
+        hash = await computeHash(file);
+      } catch (err) {
+        console.warn(`Failed to compute hash for ${relativePath}:`, err);
+      }
+    }
+
+    entries.push({
+      path: relativePath,
+      name: file.name,
+      size: file.size,
+      lastModified: file.lastModified,
+      hash,
+    });
+  }
+
+  return entries;
+}
+
+/**
+ * Synchronous version for backwards compatibility
+ */
 export function parseFileList(files: FileList, options: ScanOptions = {}): FileEntry[] {
   const entries: FileEntry[] = [];
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    // webkitRelativePath format is "rootFolder/sub/file.txt"
     let relativePath = file.webkitRelativePath || file.name;
-    // Strip root directory name to get relative project path
     const firstSlash = relativePath.indexOf('/');
     if (firstSlash !== -1) {
       relativePath = relativePath.slice(firstSlash + 1);
