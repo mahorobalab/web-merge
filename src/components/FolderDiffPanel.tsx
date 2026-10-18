@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { DiffItem, DiffSummary, DiffStatus } from '../utils/diffMatcher';
+import { useTranslation } from '../i18n/I18nContext';
 import './FolderDiffPanel.css';
 
 interface FolderDiffPanelProps {
@@ -41,14 +42,14 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
   onOpenRightFolder,
   onSelectFile,
 }) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
 
-  // フィルタリング処理（メモ化）
+  // Filter diff items based on query and selected category
   const filteredItems = useMemo(() => {
     return diffItems.filter((item) => {
-      // 検索クエリ
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         if (!item.path.toLowerCase().includes(query)) {
@@ -56,7 +57,6 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
         }
       }
 
-      // ステータスフィルタ
       if (filterType === 'all') return true;
       if (filterType === 'diffs') return item.status !== 'identical';
       return item.status === filterType;
@@ -79,13 +79,13 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
   const getStatusLabel = (status: DiffStatus) => {
     switch (status) {
       case 'modified':
-        return '変更';
+        return t.status.modified;
       case 'left-only':
-        return '左のみ';
+        return t.status.leftOnly;
       case 'right-only':
-        return '右のみ';
+        return t.status.rightOnly;
       case 'identical':
-        return '一致';
+        return t.status.identical;
     }
   };
 
@@ -95,7 +95,7 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
         <button
           className="btn-icon"
           onClick={() => setCollapsed(false)}
-          title="フォルダ差分ツリーを展開"
+          title={t.folderPanel.expand}
           style={{ margin: '8px auto' }}
         >
           <ChevronRight size={18} />
@@ -106,61 +106,61 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
 
   return (
     <div className="folder-diff-panel">
-      {/* パネルヘッダー */}
+      {/* Panel Header */}
       <div className="panel-header">
         <div className="panel-title">
           <Folder size={16} color="#60a5fa" />
-          <span>フォルダ比較</span>
+          <span>{t.folderPanel.title}</span>
         </div>
         <div className="panel-actions">
           <button
             className="btn-icon"
             onClick={() => setCollapsed(true)}
-            title="パネルを折りたたむ"
+            title={t.folderPanel.collapse}
           >
             <ChevronLeft size={16} />
           </button>
         </div>
       </div>
 
-      {/* フォルダピッカーエリア */}
+      {/* Directory Selector Pickers */}
       <div className="folder-pickers">
         <div className="picker-row">
-          <span style={{ color: '#60a5fa', fontWeight: 600 }}>左:</span>
-          <span className={`folder-name-tag ${leftFolderName ? 'active' : ''}`} title={leftFolderName || '未選択'}>
-            {leftFolderName || '未選択'}
+          <span style={{ color: '#60a5fa', fontWeight: 600 }}>{t.folderPanel.left}</span>
+          <span className={`folder-name-tag ${leftFolderName ? 'active' : ''}`} title={leftFolderName || t.folderPanel.unselected}>
+            {leftFolderName || t.folderPanel.unselected}
           </span>
           <button className="btn-secondary" style={{ padding: '3px 8px' }} onClick={onOpenLeftFolder}>
-            <FolderOpen size={13} /> 選択
+            <FolderOpen size={13} /> {t.folderPanel.select}
           </button>
         </div>
 
         <div className="picker-row">
-          <span style={{ color: '#38bdf8', fontWeight: 600 }}>右:</span>
-          <span className={`folder-name-tag ${rightFolderName ? 'active' : ''}`} title={rightFolderName || '未選択'}>
-            {rightFolderName || '未選択'}
+          <span style={{ color: '#38bdf8', fontWeight: 600 }}>{t.folderPanel.right}</span>
+          <span className={`folder-name-tag ${rightFolderName ? 'active' : ''}`} title={rightFolderName || t.folderPanel.unselected}>
+            {rightFolderName || t.folderPanel.unselected}
           </span>
           <button className="btn-secondary" style={{ padding: '3px 8px' }} onClick={onOpenRightFolder}>
-            <FolderOpen size={13} /> 選択
+            <FolderOpen size={13} /> {t.folderPanel.select}
           </button>
         </div>
       </div>
 
-      {/* スキャン中プログレス */}
+      {/* Background Scanning Progress */}
       {isScanning && (
         <div className="scan-progress">
           <div className="spinner" />
-          <span>{scanProgressText || 'フォルダをスキャン中...'}</span>
+          <span>{scanProgressText || t.folderPanel.scanning}</span>
         </div>
       )}
 
-      {/* 検索 & フィルタ */}
+      {/* Search & Filter Bar */}
       <div className="filter-section">
         <div style={{ position: 'relative' }}>
           <input
             type="text"
             className="search-input"
-            placeholder="ファイルを検索..."
+            placeholder={t.folderPanel.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -172,44 +172,44 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
             className={`pill-btn ${filterType === 'all' ? 'active' : ''}`}
             onClick={() => setFilterType('all')}
           >
-            全項目 ({summary.total})
+            {t.folderPanel.filterAll} ({summary.total})
           </button>
           <button
             className={`pill-btn ${filterType === 'diffs' ? 'active' : ''}`}
             onClick={() => setFilterType('diffs')}
           >
-            差分のみ ({summary.modified + summary.leftOnly + summary.rightOnly})
+            {t.folderPanel.filterDiffs} ({summary.modified + summary.leftOnly + summary.rightOnly})
           </button>
           <button
             className={`pill-btn ${filterType === 'modified' ? 'active' : ''}`}
             onClick={() => setFilterType('modified')}
           >
-            変更 ({summary.modified})
+            {t.folderPanel.filterModified} ({summary.modified})
           </button>
           <button
             className={`pill-btn ${filterType === 'left-only' ? 'active' : ''}`}
             onClick={() => setFilterType('left-only')}
           >
-            左のみ ({summary.leftOnly})
+            {t.folderPanel.filterLeftOnly} ({summary.leftOnly})
           </button>
           <button
             className={`pill-btn ${filterType === 'right-only' ? 'active' : ''}`}
             onClick={() => setFilterType('right-only')}
           >
-            右のみ ({summary.rightOnly})
+            {t.folderPanel.filterRightOnly} ({summary.rightOnly})
           </button>
         </div>
       </div>
 
-      {/* 差分ファイル一覧 */}
+      {/* Diff File List */}
       <div className="diff-list-container">
         {filteredItems.length === 0 ? (
           <div className="empty-state">
             <Filter size={24} />
             <span>
               {diffItems.length === 0
-                ? '左右のフォルダを選択するとファイル差分が一覧表示されます'
-                : '条件に一致するファイルがありません'}
+                ? t.folderPanel.emptySelectPrompt
+                : t.folderPanel.noMatchingFiles}
             </span>
           </div>
         ) : (

@@ -14,6 +14,7 @@ import {
   Rows,
   ShieldCheck,
   FolderTree,
+  Languages,
 } from 'lucide-react';
 
 import {
@@ -30,6 +31,7 @@ import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } f
 import { FolderDiffPanel } from './components/FolderDiffPanel';
 import { detectLanguage } from './utils/languageDetector';
 import { areTextsEqual, type NormalizeOptions } from './utils/textNormalizer';
+import { useTranslation } from './i18n/I18nContext';
 import './App.css';
 
 interface FileState {
@@ -48,8 +50,8 @@ interface Toast {
   type: 'success' | 'warning' | 'error';
 }
 
-const DEFAULT_LEFT_DEMO = `// WebMerge: 左側ファイル（Original）
-// ここにローカルファイルをドラッグ＆ドロップするか、「左を開く」または「フォルダ比較」をお試しください。
+const DEFAULT_LEFT_DEMO = `// WebMerge: Left file (Original)
+// Drag & drop a local file here, click "Open Left", or select a folder to compare.
 
 function calculateTotal(price: number, taxRate: number): number {
   const tax = price * taxRate;
@@ -64,8 +66,8 @@ const config = {
 };
 `;
 
-const DEFAULT_RIGHT_DEMO = `// WebMerge: 右側ファイル（Modified）
-// 直接エディタを編集して「上書き保存」を押すと、ローカルファイルを直接更新できます。
+const DEFAULT_RIGHT_DEMO = `// WebMerge: Right file (Modified)
+// Directly edit the text and click "Save Right" to write back to your local file.
 
 function calculateTotal(price: number, taxRate: number, discount: number = 0): number {
   const discountedPrice = price - discount;
@@ -82,7 +84,9 @@ const config = {
 `;
 
 export const App: React.FC = () => {
-  // エディタに表示中の左右のファイル状態
+  const { t, locale, setLocale } = useTranslation();
+
+  // Active files displayed in the Diff Editor
   const [leftFile, setLeftFile] = useState<FileState>({
     name: 'left_sample.ts',
     content: DEFAULT_LEFT_DEMO,
@@ -97,7 +101,7 @@ export const App: React.FC = () => {
     size: DEFAULT_RIGHT_DEMO.length,
   });
 
-  // フォルダ比較の状態
+  // Folder comparison states
   const [showFolderPanel, setShowFolderPanel] = useState(true);
   const [leftFolderName, setLeftFolderName] = useState<string>('');
   const [rightFolderName, setRightFolderName] = useState<string>('');
@@ -107,7 +111,7 @@ export const App: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgressText, setScanProgressText] = useState<string>('');
 
-  // 差分マッチング結果
+  // Aggregated directory diff results
   const diffResult = React.useMemo<{ items: DiffItem[]; summary: DiffSummary }>(() => {
     return matchFolderEntries(leftEntries, rightEntries);
   }, [leftEntries, rightEntries]);
@@ -125,7 +129,7 @@ export const App: React.FC = () => {
   const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Hidden inputs for fallback file/folder selection
+  // Hidden inputs for fallback file and folder pickers
   const leftFileInputRef = useRef<HTMLInputElement>(null);
   const rightFileInputRef = useRef<HTMLInputElement>(null);
   const leftDirInputRef = useRef<HTMLInputElement>(null);
@@ -142,27 +146,27 @@ export const App: React.FC = () => {
     }, 4000);
   }, []);
 
-  // 言語の自動検出
+  // Automatic syntax detection
   const language = detectLanguage(rightFile.name || leftFile.name);
 
-  // 差分が一致しているかどうかの判定
+  // Check if texts are equal according to active normalization options
   const isMatch = areTextsEqual(leftFile.content, rightFile.content, {
     ignoreLineEndings: normalizeOptions.ignoreLineEndings,
     ignoreLeadingTrailingWhitespace: ignoreTrimWhitespace,
     ignoreBlankLines: normalizeOptions.ignoreBlankLines,
   });
 
-  // 単一ファイルオープン処理
+  // Open single file
   const handleOpenFile = async (side: 'left' | 'right') => {
     if (isFileSystemAccessSupported()) {
       try {
         const opened = await openFileWithPicker();
         if (opened) {
           updateFileState(side, opened);
-          showToast(`${side === 'left' ? '左' : '右'}のファイル「${opened.name}」を開きました`);
+          showToast(t.toasts.openedFile(side === 'left' ? 'Left' : 'Right', opened.name));
         }
       } catch (err: any) {
-        showToast(`ファイル読み込みエラー: ${err.message}`, 'error');
+        showToast(t.toasts.fileError(err.message), 'error');
       }
     } else {
       if (side === 'left') {
@@ -178,7 +182,7 @@ export const App: React.FC = () => {
     if (file) {
       const opened = await readFileObject(file);
       updateFileState(side, opened);
-      showToast(`${side === 'left' ? '左' : '右'}のファイル「${opened.name}」を開きました`);
+      showToast(t.toasts.openedFile(side === 'left' ? 'Left' : 'Right', opened.name));
     }
     e.target.value = '';
   };
@@ -199,7 +203,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // フォルダオープン処理（Web Workerスキャン連携）
+  // Open directory using background Web Worker scan
   const handleOpenFolder = async (side: 'left' | 'right') => {
     if (isFileSystemAccessSupported()) {
       try {
@@ -207,7 +211,7 @@ export const App: React.FC = () => {
         if (!dirHandle) return;
 
         setIsScanning(true);
-        setScanProgressText(`${dirHandle.name} をスキャン中...`);
+        setScanProgressText(`${dirHandle.name}...`);
         if (side === 'left') {
           setLeftFolderName(dirHandle.name);
         } else {
@@ -216,7 +220,7 @@ export const App: React.FC = () => {
 
         const entries = await scanFolderAsync(dirHandle, side, {
           onProgress: (count, path) => {
-            setScanProgressText(`スキャン中: ${count} 件 (${path})`);
+            setScanProgressText(`${count} (${path})`);
           },
         });
 
@@ -226,15 +230,15 @@ export const App: React.FC = () => {
           setRightEntries(entries);
         }
 
-        showToast(`${side === 'left' ? '左' : '右'}フォルダ「${dirHandle.name}」(${entries.length}ファイル) を走査しました`, 'success');
+        showToast(t.toasts.openedFolder(side === 'left' ? 'Left' : 'Right', dirHandle.name, entries.length), 'success');
       } catch (err: any) {
-        showToast(`フォルダ走査エラー: ${err.message}`, 'error');
+        showToast(t.toasts.fileError(err.message), 'error');
       } finally {
         setIsScanning(false);
         setScanProgressText('');
       }
     } else {
-      // フォールバック input
+      // Fallback input for browsers without showDirectoryPicker
       if (side === 'left') {
         leftDirInputRef.current?.click();
       } else {
@@ -246,7 +250,7 @@ export const App: React.FC = () => {
   const handleDirInputChange = (e: React.ChangeEvent<HTMLInputElement>, side: 'left' | 'right') => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const folderName = files[0].webkitRelativePath?.split('/')[0] || '選択フォルダ';
+      const folderName = files[0].webkitRelativePath?.split('/')[0] || 'Selected Folder';
       const parsed = parseFileList(files);
       if (side === 'left') {
         setLeftFolderName(folderName);
@@ -255,12 +259,12 @@ export const App: React.FC = () => {
         setRightFolderName(folderName);
         setRightEntries(parsed);
       }
-      showToast(`${side === 'left' ? '左' : '右'}フォルダ「${folderName}」(${parsed.length}ファイル) を読み込みました`, 'success');
+      showToast(t.toasts.openedFolder(side === 'left' ? 'Left' : 'Right', folderName, parsed.length), 'success');
     }
     e.target.value = '';
   };
 
-  // フォルダ差分リストからアイテムがクリックされたときのオンデマンド読み込み
+  // On-demand load of file contents when a diff item is clicked
   const handleSelectDiffItem = async (item: DiffItem) => {
     setSelectedPath(item.path);
 
@@ -275,7 +279,7 @@ export const App: React.FC = () => {
       let rightModified = 0;
       let rightSize = 0;
 
-      // 左側の読み込み（存在する場合）
+      // Load left file content if present
       if (item.left) {
         leftHandle = item.left.handle;
         leftModified = item.left.lastModified;
@@ -286,7 +290,7 @@ export const App: React.FC = () => {
         }
       }
 
-      // 右側の読み込み（存在する場合）
+      // Load right file content if present
       if (item.right) {
         rightHandle = item.right.handle;
         rightModified = item.right.lastModified;
@@ -317,11 +321,11 @@ export const App: React.FC = () => {
         size: rightSize,
       });
     } catch (err: any) {
-      showToast(`ファイル読み込みエラー: ${err.message}`, 'error');
+      showToast(t.toasts.fileError(err.message), 'error');
     }
   };
 
-  // 保存処理
+  // Save handling
   const handleSave = async (side: 'left' | 'right') => {
     const target = side === 'left' ? leftFile : rightFile;
 
@@ -333,25 +337,23 @@ export const App: React.FC = () => {
       try {
         const result = await saveFileWithHandle(target.handle, contentToSave, target.lastModified);
         if (result.conflict) {
-          const proceed = window.confirm(
-            'ファイルが外部ツール（エディタやGitなど）によって変更されています！\n上書きしますか？'
-          );
+          const proceed = window.confirm(t.toasts.conflictConfirm);
           if (proceed) {
             const forceResult = await saveFileWithHandle(target.handle, contentToSave);
             updateSavedState(side, contentToSave, forceResult.newLastModified);
-            showToast(`${side === 'left' ? '左' : '右'}のファイルを強制上書き保存しました`, 'warning');
+            showToast(t.toasts.forceSaved(side === 'left' ? 'Left' : 'Right'), 'warning');
           }
         } else {
           updateSavedState(side, contentToSave, result.newLastModified);
-          showToast(`${side === 'left' ? '左' : '右'}のローカルファイルを直接上書き保存しました！`, 'success');
+          showToast(t.toasts.savedSuccess(side === 'left' ? 'Left' : 'Right'), 'success');
         }
       } catch (err: any) {
-        showToast(`保存に失敗しました: ${err.message}`, 'error');
+        showToast(t.toasts.saveError(err.message), 'error');
       }
     } else {
       downloadFileContent(target.name, contentToSave);
       updateSavedState(side, contentToSave);
-      showToast(`「${target.name}」をダウンロード保存しました`, 'success');
+      showToast(t.toasts.downloaded(target.name), 'success');
     }
   };
 
@@ -373,7 +375,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // マージ操作
+  // Merge actions
   const handleMerge = (direction: 'leftToRight' | 'rightToLeft') => {
     if (!diffEditorRef.current) return;
     const originalEditor = diffEditorRef.current.getOriginalEditor();
@@ -383,16 +385,16 @@ export const App: React.FC = () => {
       const originalValue = originalEditor.getValue();
       modifiedEditor.setValue(originalValue);
       setRightFile((prev) => ({ ...prev, content: originalValue, isDirty: true }));
-      showToast('左側の内容を右側へマージ（コピー）しました');
+      showToast(t.toasts.mergedLeftToRight);
     } else {
       const modifiedValue = modifiedEditor.getValue();
       originalEditor.setValue(modifiedValue);
       setLeftFile((prev) => ({ ...prev, content: modifiedValue, isDirty: true }));
-      showToast('右側の内容を左側へマージ（コピー）しました');
+      showToast(t.toasts.mergedRightToLeft);
     }
   };
 
-  // ドラッグ＆ドロップハンドラ
+  // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent, side: 'left' | 'right') => {
     e.preventDefault();
     e.stopPropagation();
@@ -422,13 +424,13 @@ export const App: React.FC = () => {
           }
           const opened = await readFileObject(file, handle);
           updateFileState(side, opened);
-          showToast(`${side === 'left' ? '左' : '右'}に「${opened.name}」を読み込みました`);
+          showToast(t.toasts.openedFile(side === 'left' ? 'Left' : 'Right', opened.name));
         }
       }
     }
   };
 
-  // Monaco Editorマウント時
+  // Monaco Editor mount callback
   const handleEditorDidMount: DiffEditorProps['onMount'] = (editor) => {
     diffEditorRef.current = editor;
 
@@ -446,7 +448,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      {/* 隠しinput（ファイル用） */}
+      {/* Hidden inputs for single file selection */}
       <input
         type="file"
         ref={leftFileInputRef}
@@ -460,7 +462,7 @@ export const App: React.FC = () => {
         onChange={(e) => handleFileInputChange(e, 'right')}
       />
 
-      {/* 隠しinput（フォルダフォールバック用） */}
+      {/* Hidden inputs for fallback directory upload */}
       <input
         type="file"
         ref={leftDirInputRef}
@@ -478,126 +480,136 @@ export const App: React.FC = () => {
         onChange={(e) => handleDirInputChange(e, 'right')}
       />
 
-      {/* ヘッダー */}
+      {/* Header */}
       <header className="app-header">
         <div className="brand-section">
           <div className="brand-logo">
             <ArrowRightLeft size={20} />
-            <span>WebMerge</span>
+            <span>{t.app.title}</span>
           </div>
-          <span className="brand-badge">Local-First</span>
+          <span className="brand-badge">{t.app.tagline}</span>
         </div>
 
         <div className="stats-section">
           <div className="stat-item">
             <ShieldCheck size={14} color="#10b981" />
-            <span>Zero-Server / 完全ローカル処理</span>
+            <span>{t.app.zeroServer}</span>
           </div>
           <div className="stat-item">
             {isMatch ? (
               <span className="stat-diff-tag equal">
                 <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-                差分なし (一致)
+                {t.app.noDiff}
               </span>
             ) : (
               <span className="stat-diff-tag different">
                 <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
-                差分あり
+                {t.app.hasDiff}
               </span>
             )}
           </div>
+
+          {/* Language Toggle */}
+          <button
+            className="btn-secondary"
+            style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+            onClick={() => setLocale(locale === 'en' ? 'ja' : 'en')}
+            title="Switch Language / 言語切り替え"
+          >
+            <Languages size={13} />
+            <span>{locale === 'en' ? 'JA' : 'EN'}</span>
+          </button>
         </div>
       </header>
 
-      {/* ツールバー */}
+      {/* Toolbar */}
       <div className="app-toolbar">
-        {/* 左側ファイル操作 */}
+        {/* Left File Controls */}
         <div className="toolbar-group">
           <button
             className={`btn-secondary ${showFolderPanel ? 'active' : ''}`}
             onClick={() => setShowFolderPanel(!showFolderPanel)}
-            title="フォルダ比較サイドバーの表示/非表示"
+            title={t.toolbar.folderDiff}
           >
-            <FolderTree size={14} /> フォルダ比較
+            <FolderTree size={14} /> {t.toolbar.folderDiff}
           </button>
           <button className="btn-secondary" onClick={() => handleOpenFile('left')}>
-            <FolderOpen size={14} /> 左を開く
+            <FolderOpen size={14} /> {t.toolbar.openLeft}
           </button>
           <div className="file-pane-info" title={leftFile.path || leftFile.name}>
             <FileText size={14} color="#60a5fa" />
             <span className="file-name-text">{leftFile.name}</span>
-            {leftFile.isDirty && <span className="file-dirty-dot" title="未保存の変更があります" />}
+            {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
           </div>
-          <button className="btn-success" onClick={() => handleSave('left')} title="ローカルファイルに直接上書き保存">
-            <Save size={14} /> 左を保存
+          <button className="btn-success" onClick={() => handleSave('left')} title={t.toolbar.saveTitle}>
+            <Save size={14} /> {t.toolbar.saveLeft}
           </button>
         </div>
 
-        {/* マージアクション */}
+        {/* Merge Actions */}
         <div className="toolbar-group">
           <button
             className="btn-secondary"
             onClick={() => handleMerge('rightToLeft')}
-            title="右の内容をすべて左へコピー"
+            title={t.toolbar.mergeToLeftTitle}
           >
-            <ArrowLeft size={14} /> 左へマージ
+            <ArrowLeft size={14} /> {t.toolbar.mergeToLeft}
           </button>
           <button
             className="btn-secondary"
             onClick={() => handleMerge('leftToRight')}
-            title="左の内容をすべて右へコピー"
+            title={t.toolbar.mergeToRightTitle}
           >
-            右へマージ <ArrowRight size={14} />
+            {t.toolbar.mergeToRight} <ArrowRight size={14} />
           </button>
         </div>
 
-        {/* 右側ファイル操作 */}
+        {/* Right File Controls */}
         <div className="toolbar-group">
-          <button className="btn-success" onClick={() => handleSave('right')} title="ローカルファイルに直接上書き保存">
-            <Save size={14} /> 右を保存
+          <button className="btn-success" onClick={() => handleSave('right')} title={t.toolbar.saveTitle}>
+            <Save size={14} /> {t.toolbar.saveRight}
           </button>
           <div className="file-pane-info" title={rightFile.path || rightFile.name}>
             <FileText size={14} color="#38bdf8" />
             <span className="file-name-text">{rightFile.name}</span>
-            {rightFile.isDirty && <span className="file-dirty-dot" title="未保存の変更があります" />}
+            {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
           </div>
           <button className="btn-secondary" onClick={() => handleOpenFile('right')}>
-            <FolderOpen size={14} /> 右を開く
+            <FolderOpen size={14} /> {t.toolbar.openRight}
           </button>
         </div>
 
-        {/* 比較オプション */}
+        {/* Comparison Options */}
         <div className="toolbar-group">
           <button
             className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
             onClick={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
-            title="行頭・行末の空白の差分を無視"
+            title={t.toolbar.ignoreWhitespace}
           >
-            空白無視: {ignoreTrimWhitespace ? 'ON' : 'OFF'}
+            {t.toolbar.ignoreWhitespace}: {ignoreTrimWhitespace ? t.toolbar.on : t.toolbar.off}
           </button>
           <button
             className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
             onClick={() =>
               setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
             }
-            title="改行コード(CRLF/LF)の違いを無視"
+            title={t.toolbar.ignoreLineEndings}
           >
-            改行無視: {normalizeOptions.ignoreLineEndings ? 'ON' : 'OFF'}
+            {t.toolbar.ignoreLineEndings}: {normalizeOptions.ignoreLineEndings ? t.toolbar.on : t.toolbar.off}
           </button>
           <button
             className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
             onClick={() => setRenderSideBySide(!renderSideBySide)}
-            title="サイドバイサイド(横並び) / インライン表示の切り替え"
+            title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
           >
             {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
-            {renderSideBySide ? '左右分割' : 'インライン'}
+            {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
           </button>
         </div>
       </div>
 
-      {/* エディタメイン領域 */}
+      {/* Editor & Folder Panel */}
       <main className="editor-main">
-        {/* フォルダ比較パネル */}
         {showFolderPanel && (
           <FolderDiffPanel
             leftFolderName={leftFolderName}
@@ -613,7 +625,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* 左側ドロップゾーン */}
+        {/* Left Drop Zone */}
         <div
           className={`drop-side ${dragSide === 'left' ? 'dragover' : ''}`}
           style={{ display: dragSide === 'left' ? 'flex' : 'none', position: 'absolute', left: showFolderPanel ? 380 : 0, width: '40%', height: '80%', zIndex: 50 }}
@@ -622,10 +634,10 @@ export const App: React.FC = () => {
           onDrop={(e) => handleDrop(e, 'left')}
         >
           <FolderOpen size={48} color="#60a5fa" />
-          <h3>左側のファイルをここにドロップ</h3>
+          <h3>{t.dropzone.dropLeft}</h3>
         </div>
 
-        {/* 右側ドロップゾーン */}
+        {/* Right Drop Zone */}
         <div
           className={`drop-side ${dragSide === 'right' ? 'dragover' : ''}`}
           style={{ display: dragSide === 'right' ? 'flex' : 'none', position: 'absolute', right: 0, width: '40%', height: '80%', zIndex: 50 }}
@@ -634,7 +646,7 @@ export const App: React.FC = () => {
           onDrop={(e) => handleDrop(e, 'right')}
         >
           <FolderOpen size={48} color="#38bdf8" />
-          <h3>右側のファイルをここにドロップ</h3>
+          <h3>{t.dropzone.dropRight}</h3>
         </div>
 
         <div
@@ -673,34 +685,34 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* ステータスバー */}
+      {/* Status Bar */}
       <footer className="app-statusbar">
         <div className="statusbar-group">
           <span className="statusbar-item">
-            パス: <strong>{leftFile.path || leftFile.name}</strong>
+            {t.statusbar.path} <strong>{leftFile.path || leftFile.name}</strong>
           </span>
           <span className="statusbar-item">
-            言語: <strong>{language}</strong>
+            {t.statusbar.language} <strong>{language}</strong>
           </span>
           <span className="statusbar-item">
-            文字コード: <strong>UTF-8</strong>
+            {t.statusbar.encoding} <strong>UTF-8</strong>
           </span>
           <span className="statusbar-item">
-            直接上書き: <strong>{isFileSystemAccessSupported() ? '有効 (File System Access)' : 'ダウンロード保存'}</strong>
+            {t.statusbar.directSave} <strong>{isFileSystemAccessSupported() ? t.statusbar.enabled : t.statusbar.fallback}</strong>
           </span>
         </div>
 
         <div className="statusbar-group">
           <span className="statusbar-item">
-            左: {leftFile.content.split('\n').length} 行 ({leftFile.size} bytes)
+            {t.statusbar.left} {leftFile.content.split('\n').length} {t.statusbar.lines} ({leftFile.size} {t.statusbar.bytes})
           </span>
           <span className="statusbar-item">
-            右: {rightFile.content.split('\n').length} 行 ({rightFile.size} bytes)
+            {t.statusbar.right} {rightFile.content.split('\n').length} {t.statusbar.lines} ({rightFile.size} {t.statusbar.bytes})
           </span>
         </div>
       </footer>
 
-      {/* トースト通知 */}
+      {/* Toast Notifications */}
       <div className="toast-container">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast ${toast.type}`}>

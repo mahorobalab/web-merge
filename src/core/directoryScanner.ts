@@ -7,11 +7,11 @@ export interface ScanOptions {
 }
 
 /**
- * showDirectoryPicker() を開いてディレクトリハンドルを取得する
+ * Prompts the user to select a directory using showDirectoryPicker().
  */
 export async function openDirectoryWithPicker(): Promise<FileSystemDirectoryHandle | null> {
   if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) {
-    throw new Error('お使いのブラウザはフォルダ選択API(showDirectoryPicker)に対応していません。');
+    throw new Error('Your browser does not support the File System Access API (showDirectoryPicker).');
   }
 
   try {
@@ -19,15 +19,16 @@ export async function openDirectoryWithPicker(): Promise<FileSystemDirectoryHand
     return handle;
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      return null; // ユーザーキャンセル
+      return null; // User cancelled
     }
     throw err;
   }
 }
 
 /**
- * FileSystemDirectoryHandle を再帰走査して FileEntry[] を収集する
- * ※ メモリ防衛のため、本文(テキスト)は読み込まずメタデータとハンドルのみを保持
+ * Recursively scans a FileSystemDirectoryHandle and collects FileEntry items.
+ * Note: To guard against browser tab memory limits, file contents are not loaded
+ * into memory during scanning; only metadata and handles are retained.
  */
 export async function scanDirectoryHandle(
   dirHandle: FileSystemDirectoryHandle,
@@ -40,7 +41,7 @@ export async function scanDirectoryHandle(
     for await (const [name, handle] of (currentDir as any).entries()) {
       const relativePath = currentPath ? `${currentPath}/${name}` : name;
 
-      // 除外判定
+      // Check exclusion filter
       if (isPathIgnored(relativePath, options.ignorePatterns)) {
         continue;
       }
@@ -69,23 +70,24 @@ export async function scanDirectoryHandle(
 
   await traverse(dirHandle, '');
   if (options.onProgress) {
-    options.onProgress(count, '完了');
+    options.onProgress(count, 'Done');
   }
 
   return entries;
 }
 
 /**
- * <input type="file" webkitdirectory> 等の FileList から FileEntry[] を生成する（Safari等のフォールバック用）
+ * Parses a FileList (e.g. from <input type="file" webkitdirectory>) into FileEntry[]
+ * Used as a fallback for browsers like Safari and Firefox that do not support directory pickers.
  */
 export function parseFileList(files: FileList, options: ScanOptions = {}): FileEntry[] {
   const entries: FileEntry[] = [];
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    // webkitRelativePath は "folderName/sub/file.txt" の形式
+    // webkitRelativePath format is "rootFolder/sub/file.txt"
     let relativePath = file.webkitRelativePath || file.name;
-    // 最初のフォルダ名を取り除く（例: "folderA/src/index.ts" -> "src/index.ts"）
+    // Strip root directory name to get relative project path
     const firstSlash = relativePath.indexOf('/');
     if (firstSlash !== -1) {
       relativePath = relativePath.slice(firstSlash + 1);

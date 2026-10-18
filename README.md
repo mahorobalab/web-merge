@@ -1,32 +1,55 @@
-# React + TypeScript + Vite
+# WebMerge 🔀
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> A high-performance, browser-native, local-first file & folder diff/merge tool.
 
-Currently, two official plugins are available:
+WebMerge is an open-source web application designed to bring the power of WinMerge to any platform (macOS, Linux, ChromeOS, Windows) with zero installation, zero server communication, and direct local file saving via the File System Access API.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+[日本語ドキュメント (Japanese Document)](./README_ja.md)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ Features
 
-## Expanding the Oxlint configuration
+- 🔒 **100% Local-First & Zero-Server**: No code or file data ever leaves your machine. Completely private and safe for proprietary code.
+- 💾 **Direct In-Place Saving**: Directly edit and save changes back to your local files using the File System Access API.
+- 📁 **Folder & Directory Diff**: Recursively compare directories with real-time status indicators (Identical, Modified, Left Only, Right Only).
+- ⚡ **Background Worker Scanning**: Keeps the UI responsive at 60 FPS even when scanning large directory structures.
+- 🧠 **Monaco Diff Editor Core**: Powered by VS Code's diff editor with syntax highlighting, inline/side-by-side view, and bi-directional editing.
+- 🎛️ **WinMerge Options**: Ignore whitespaces, normalize CRLF/LF line endings, and filter out `.git`, `node_modules`, etc.
+- 🌐 **Internationalization (i18n)**: English (default) and Japanese built-in.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+---
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v20+ recommended)
+- Modern browser with File System Access API support (Google Chrome, Microsoft Edge, Opera, or Chromium-based browsers)
+
+### Installation & Development
+```bash
+# Clone the repository
+git clone https://github.com/your-username/web-merge.git
+cd web-merge
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Running Tests
+```bash
+npm test
+```
+
+### Production Build
+```bash
+npm run build
+```
+
+---
+
+## 📜 License
+MIT License

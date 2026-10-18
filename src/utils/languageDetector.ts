@@ -1,5 +1,5 @@
 /**
- * ファイル名や拡張子からMonaco Editorが認識する言語IDを判定する純粋関数
+ * Pure function that maps a file name or extension to a Monaco Editor language identifier.
  */
 export function detectLanguage(fileName: string): string {
   if (!fileName) return 'plaintext';
@@ -47,7 +47,7 @@ export function detectLanguage(fileName: string): string {
     '.svg': 'xml',
   };
 
-  // ファイル名そのもので判定（例: Dockerfile, Makefile）
+  // Check special filenames without extensions (e.g. Dockerfile, Makefile)
   const lowerName = fileName.toLowerCase();
   if (lowerName === 'dockerfile') return 'dockerfile';
   if (lowerName === 'makefile') return 'makefile';

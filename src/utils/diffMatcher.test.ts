@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { matchFolderEntries, type FileEntry } from './diffMatcher';
 
 describe('diffMatcher', () => {
-  it('左のみ・右のみのファイルを正しく判定できること', () => {
+  it('correctly categorizes left-only and right-only files', () => {
     const left: FileEntry[] = [
       { path: 'file1.txt', name: 'file1.txt', size: 100, lastModified: 1000 },
     ];
@@ -23,7 +23,7 @@ describe('diffMatcher', () => {
     expect(item2?.status).toBe('right-only');
   });
 
-  it('サイズ・更新日時が一致するファイルをidenticalと判定できること', () => {
+  it('identifies identical files matching both size and timestamp', () => {
     const left: FileEntry[] = [
       { path: 'same.ts', name: 'same.ts', size: 500, lastModified: 5000 },
     ];
@@ -36,7 +36,7 @@ describe('diffMatcher', () => {
     expect(result.summary.identical).toBe(1);
   });
 
-  it('サイズまたは更新日時が異なるファイルをmodifiedと判定できること', () => {
+  it('marks files with differing sizes or timestamps as modified', () => {
     const left: FileEntry[] = [
       { path: 'diff.ts', name: 'diff.ts', size: 500, lastModified: 5000 },
     ];
@@ -49,7 +49,7 @@ describe('diffMatcher', () => {
     expect(result.summary.modified).toBe(1);
   });
 
-  it('ハッシュ値が指定されている場合はハッシュの一致で判定できること', () => {
+  it('prioritizes hash equality when hashes are available', () => {
     const left: FileEntry[] = [
       { path: 'hash.ts', name: 'hash.ts', size: 500, lastModified: 1000, hash: 'abc123hash' },
     ];
@@ -58,12 +58,11 @@ describe('diffMatcher', () => {
     ];
 
     const result = matchFolderEntries(left, right);
-    // lastModifiedが異なっていてもhashが一致していればidentical
     expect(result.items[0].status).toBe('identical');
     expect(result.summary.identical).toBe(1);
   });
 
-  it('パス順にアルファベット昇順ソートされること', () => {
+  it('sorts diff items in alphabetical ascending order by relative path', () => {
     const left: FileEntry[] = [
       { path: 'z.txt', name: 'z.txt', size: 10, lastModified: 1 },
       { path: 'a.txt', name: 'a.txt', size: 10, lastModified: 1 },

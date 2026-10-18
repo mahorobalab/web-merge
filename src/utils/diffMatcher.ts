@@ -1,6 +1,6 @@
 export interface FileEntry {
-  path: string; // 相対パス (例: "src/index.ts")
-  name: string; // ファイル名
+  path: string; // Relative path (e.g. "src/index.ts")
+  name: string; // File name
   size: number;
   lastModified: number;
   handle?: FileSystemFileHandle;
@@ -26,7 +26,8 @@ export interface DiffSummary {
 }
 
 /**
- * 左右のFileEntry一覧から統合差分リストを生成する純粋関数
+ * Pure function that matches file entries from left and right directories,
+ * determining diff statuses and generating an aggregated comparison list.
  */
 export function matchFolderEntries(
   leftEntries: FileEntry[],
@@ -34,12 +35,12 @@ export function matchFolderEntries(
 ): { items: DiffItem[]; summary: DiffSummary } {
   const map = new Map<string, { left?: FileEntry; right?: FileEntry }>();
 
-  // 左側のファイルを登録
+  // Register left-side entries
   for (const entry of leftEntries) {
     map.set(entry.path, { left: entry });
   }
 
-  // 右側のファイルを登録/突合
+  // Register and match right-side entries
   for (const entry of rightEntries) {
     const existing = map.get(entry.path);
     if (existing) {
@@ -58,7 +59,7 @@ export function matchFolderEntries(
     rightOnly: 0,
   };
 
-  // 全アイテムのステータスを判定
+  // Evaluate diff status for each entry
   for (const [path, { left, right }] of map.entries()) {
     let status: DiffStatus;
     const name = (left?.name || right?.name) ?? path.split('/').pop() ?? path;
@@ -70,9 +71,8 @@ export function matchFolderEntries(
       status = 'right-only';
       summary.rightOnly++;
     } else if (left && right) {
-      // 左右両方に存在する場合の比較
       if (left.hash && right.hash) {
-        // ハッシュ値が存在する場合はハッシュで厳密比較
+        // Strict comparison via hash values when available
         if (left.hash === right.hash) {
           status = 'identical';
           summary.identical++;
@@ -81,7 +81,7 @@ export function matchFolderEntries(
           summary.modified++;
         }
       } else {
-        // ハッシュ計算前の高速比較（サイズと更新日時）
+        // Fast pre-hash comparison via file size and last modified timestamp
         if (left.size === right.size && left.lastModified === right.lastModified) {
           status = 'identical';
           summary.identical++;
@@ -103,7 +103,7 @@ export function matchFolderEntries(
     });
   }
 
-  // パス順（アルファベット順・ディレクトリ階層順）にソート
+  // Sort items in alphabetical order by path
   items.sort((a, b) => a.path.localeCompare(b.path));
 
   return { items, summary };

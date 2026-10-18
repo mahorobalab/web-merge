@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { detectLanguage } from './languageDetector';
 
 describe('detectLanguage', () => {
-  it('主要なプログラミング言語の拡張子を正しく判定できること', () => {
+  it('correctly detects major programming languages by extension', () => {
     expect(detectLanguage('index.ts')).toBe('typescript');
     expect(detectLanguage('App.tsx')).toBe('typescript');
     expect(detectLanguage('script.js')).toBe('javascript');
@@ -11,7 +11,7 @@ describe('detectLanguage', () => {
     expect(detectLanguage('main.go')).toBe('go');
   });
 
-  it('マークアップや設定ファイルの拡張子を正しく判定できること', () => {
+  it('correctly detects markup and config file formats', () => {
     expect(detectLanguage('index.html')).toBe('html');
     expect(detectLanguage('styles.css')).toBe('css');
     expect(detectLanguage('package.json')).toBe('json');
@@ -19,12 +19,12 @@ describe('detectLanguage', () => {
     expect(detectLanguage('docker-compose.yml')).toBe('yaml');
   });
 
-  it('拡張子のない特殊ファイル名を正しく判定できること', () => {
+  it('correctly identifies special filenames without extensions', () => {
     expect(detectLanguage('Dockerfile')).toBe('dockerfile');
     expect(detectLanguage('Makefile')).toBe('makefile');
   });
 
-  it('未知の拡張子や空文字の場合はplaintextを返すこと', () => {
+  it('falls back to plaintext for unknown extensions or empty strings', () => {
     expect(detectLanguage('data.unknown')).toBe('plaintext');
     expect(detectLanguage('')).toBe('plaintext');
     expect(detectLanguage('noextension')).toBe('plaintext');

@@ -1,81 +1,82 @@
-# AGENTS.md - WebMerge 開発ガイドライン
+# AGENTS.md - WebMerge Development Guidelines
 
-本書は、WebMerge（ブラウザ完結型ファイル・フォルダ差分比較/マージツール）を開発するAIエージェントおよび開発者のための指針・アーキテクチャ規約・テスト規約・運用ルールを定めたものです。
-
----
-
-## 1. プロジェクト概要 & コアミッション
-
-- **プロダクト名**: WebMerge
-- **目的**: 
-  - インストール不要でブラウザ上で即座に動く、WinMergeライクなファイル/フォルダDiff・マージツール。
-  - 特に「Mac / Linux / Chromebook で手軽にフォルダ比較ができない」という課題を解決する。
-- **コアバリュー**:
-  - **完全ローカル完結（Local-First & Zero-Server）**: 外部サーバーへのファイル送信は一切行わない。
-  - **直接上書き保存**: File System Access APIを活用し、ローカルファイルを直接編集・上書き可能。
-  - **爆速・省メモリ**: Web Worker と WebAssembly (Rust) を活用し、数千ファイル規模でもUIがフリーズしない。
+This document outlines the guidelines, architecture principles, testing standards, and operational rules for AI agents and human contributors developing WebMerge (a browser-native, local-first file/folder diff and merge tool).
 
 ---
 
-## 2. 技術スタック
+## 1. Project Overview & Core Mission
+
+- **Product Name**: WebMerge
+- **Purpose**:
+  - Provide an installation-free, WinMerge-like file and folder diff/merge tool that runs instantly in modern browsers.
+  - Solve the lack of free, high-performance, GUI-based folder diff tools, especially for macOS, Linux, and ChromeOS users.
+- **Core Values**:
+  - **Local-First & Zero-Server**: Zero external server transmissions. All processing stays entirely in the client browser.
+  - **Direct In-Place Saving**: Leverage the File System Access API to directly edit and overwrite local files.
+  - **High Performance & Low Memory**: Prevent UI freezing on thousands of files using Web Workers and WebAssembly (Rust).
+
+---
+
+## 2. Technology Stack
 
 - **Core Runtime**: TypeScript, React, Vite
-- **Styling**: CSS Modules / Vanilla CSS（洗練されたモダンUI、VS Codeライクなダークモード標準対応）
+- **Internationalization (i18n)**: English (default) and Japanese built-in support
+- **Styling**: CSS Modules / Vanilla CSS (refined modern UI, VS Code-like dark theme by default)
 - **Editor / Diff Engine**: Monaco Editor
 - **Testing**:
-  - 単体・統合テスト: **Vitest**
-  - E2Eテスト: **Playwright** (Phase 2〜)
-- **High-Performance Core (Phase 3〜)**: Rust + `wasm-bindgen` (xxHash3 / Fast Myers diff)
+  - Unit & Integration Testing: **Vitest**
+  - E2E Testing: **Playwright** (from Phase 2 onwards)
+- **High-Performance Core (Phase 3+)**: Rust + `wasm-bindgen` (xxHash3 / Fast Myers diff)
 - **I/O API**: File System Access API (`showOpenFilePicker`, `showDirectoryPicker`, `FileSystemFileHandle`)
 
 ---
 
-## 3. アーキテクチャ原則
+## 3. Architecture Principles
 
-### ① メインスレッド（UI）の防衛
-- フォルダ走査、ファイルハッシュ計算、差分計算などの重い処理をメインスレッドで実行してはならない。
-- 重い処理はすべて **Web Worker** に委託し、進捗状況（`progress: number`）をメインスレッドへ postMessage で通知する。
+### ① Defend the Main Thread (UI)
+- Never perform heavy tasks (directory traversal, file hashing, large diff calculations) on the main thread.
+- Delegate all heavy operations to **Web Workers**, reporting progress (`progress: number`, scanned count) to the main thread via `postMessage`.
 
-### ② オンデマンド読み込み（Lazy Loading）とメモリガード
-- フォルダ比較時、全ファイルのテキスト本文を一度にメモリへ読み込んではならない（ブラウザタブのメモリ制限 2GB を防ぐため）。
-- スキャン時は「パス・ファイルサイズ・更新日時・ハッシュ値」のみを保持し、ユーザーがツリー上のファイルを選択した瞬間に対象の2ファイルのみ本文を読み込む。
+### ② On-Demand Loading (Lazy Loading) & Memory Guard
+- Never read all file contents into memory at once during folder comparison (to prevent exceeding the ~2GB browser tab memory limit).
+- Store only metadata (path, file size, last modified, file handle, hash) during scans. Read full file contents only when the user selects a file pair from the tree/list.
 
-### ③ ピュア関数（純粋関数）としてのロジック分離
-- 「空白無視」「改行コード（CRLF/LF）統一」「文字コード変換」「行・単語単位のDiff計算」などのコアロジックは、UIコンポーネント（React）やエディタ（Monaco）から完全に分離し、純粋関数として実装する。
-- 純粋関数とすることで、Headlessな単体テスト（Vitest）を100%適用可能にし、将来のRust/Wasm置き換えを容易にする。
-
----
-
-## 4. テスト戦略（TDD & 品質保証）
-
-エージェントは新機能やロジック変更を行う際、**必ずテストを並行して作成・更新**すること。
-
-1. **ロジックはテスト先行/並行（Vitest）**:
-   - `src/utils/` や `src/core/` に作成する正規化関数・差分判定関数には、対応する `.test.ts` を必ず作成する。
-   - 境界値（空文字、末尾改行のみ、全角空白、Windows/Unix改行混在など）を網羅する。
-2. **コミット前のテストパス確認**:
-   - コミットを作成する前に、必ず `npm test`（Vitest）がすべてパスすることを確認する。
+### ③ Pure Functions for Core Logic
+- Isolate all core algorithms ("ignore whitespace", "normalize line endings (CRLF/LF)", "character encoding detection", "line/word diff calculation") into pure functions separated from UI components and the editor.
+- Pure functions ensure 100% headless unit testability with Vitest and ease future Rust/Wasm migrations.
 
 ---
 
-## 5. Git & コミット規約
+## 4. Testing Strategy (TDD & Quality Assurance)
 
-開発は小さなステップで細かくコミットを積み上げる方針とする。
+Contributors and agents must always create and update tests alongside new features and logic changes.
 
-- **コミットメッセージ規約**: Conventional Commits に準拠
-  - `feat:` 新機能の追加
-  - `fix:` バグ修正
-  - `test:` テストコードの追加・修正
-  - `refactor:` リファクタリング（機能変更なし）
-  - `docs:` ドキュメントの作成・更新
-  - `chore:` ビルド環境、依存関係、設定ファイルの変更
-- **コミット単位**:
-  - 「1つの機能 + その単体テスト」のセット、またはドキュメント更新などの明確な単位でコミットする。
+1. **Test-First / Parallel Tests (Vitest)**:
+   - Always create a corresponding `.test.ts` for any utility in `src/utils/` or `src/core/`.
+   - Cover boundary conditions (empty strings, trailing newlines only, mixed Windows/Unix line endings, whitespaces).
+2. **Verify Clean Test Run Before Commits**:
+   - Ensure all tests pass (`npm test`) and type checking succeeds (`tsc --noEmit`) before committing.
 
 ---
 
-## 6. UI/UXデザイン原則
+## 5. Git & Commit Guidelines
 
-- 単なる「簡素なWeb画面」ではなく、プロの開発者が常用したくなる **洗練されたプレミアムなデザイン** を徹底する。
-- Monaco Editor と親和性の高いダークテーマ（VS Code準拠）を基調とし、差分のハイライト（追加: 緑、削除: 赤、変更: 青/黄）がひと目で判別できるカラーパレットを採用する。
-- 処理中のローディング・プログレスバー・トースト通知にはスムーズなマイクロアニメーションを付与する。
+Develop incrementally with small, focused commits.
+
+- **Commit Convention**: Conventional Commits specification
+  - `feat:` New features
+  - `fix:` Bug fixes
+  - `test:` Adding or updating tests
+  - `refactor:` Code refactoring without behavior change
+  - `docs:` Documentation updates
+  - `chore:` Build scripts, dependencies, configuration
+- **Commit Unit**:
+  - Group one feature + its unit tests or distinct documentation changes per commit.
+
+---
+
+## 6. UI/UX & Code Quality Principles
+
+- Maintain clean, professional, English-based code comments across all source files.
+- Deliver a premium, sleek developer tool aesthetic inspired by VS Code.
+- Support internationalization: default to English (`en`), with seamless support for Japanese (`ja`).

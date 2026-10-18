@@ -3,8 +3,8 @@ import { scanDirectoryHandle } from './directoryScanner';
 import type { WorkerScanRequest, WorkerScanResponse } from '../workers/scanner.worker';
 
 /**
- * ディレクトリを非同期走査するクライアント関数
- * Web Workerが利用可能な場合はWorkerへ委譲し、UIスレッドをブロックしない
+ * Asynchronously scans a directory off the UI thread.
+ * Delegates to a dedicated Web Worker when supported to prevent UI stutter.
  */
 export async function scanFolderAsync(
   dirHandle: FileSystemDirectoryHandle,
@@ -14,7 +14,7 @@ export async function scanFolderAsync(
     onProgress?: (count: number, currentPath: string) => void;
   } = {}
 ): Promise<FileEntry[]> {
-  // Web Worker の利用可否を判定
+  // Check if Web Workers are supported
   if (typeof Worker !== 'undefined') {
     try {
       return await new Promise<FileEntry[]>((resolve, reject) => {
@@ -40,8 +40,8 @@ export async function scanFolderAsync(
 
         worker.onerror = (err) => {
           worker.terminate();
-          // Worker内での転送エラー等の場合はメインスレッドフォールバックへ
-          console.warn('Workerスキャンでエラーが発生したため、メインスレッドでフォールバック実行します:', err);
+          // Fall back to main thread execution if Worker handle cloning fails
+          console.warn('Worker scan encountered an error, falling back to main thread execution:', err);
           scanDirectoryHandle(dirHandle, options).then(resolve).catch(reject);
         };
 
@@ -55,11 +55,11 @@ export async function scanFolderAsync(
         worker.postMessage(req);
       });
     } catch (e) {
-      console.warn('Workerの起動に失敗したため、メインスレッドで走査します:', e);
+      console.warn('Failed to spawn Worker, running scan on main thread:', e);
       return scanDirectoryHandle(dirHandle, options);
     }
   }
 
-  // Worker非対応環境
+  // Fallback for environments without Worker support
   return scanDirectoryHandle(dirHandle, options);
 }

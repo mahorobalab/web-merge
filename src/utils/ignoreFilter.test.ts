@@ -2,32 +2,32 @@ import { describe, it, expect } from 'vitest';
 import { isPathIgnored } from './ignoreFilter';
 
 describe('ignoreFilter', () => {
-  it('.gitディレクトリやその配下のファイルを除外できること', () => {
+  it('excludes .git directory and nested files', () => {
     expect(isPathIgnored('.git')).toBe(true);
     expect(isPathIgnored('.git/config')).toBe(true);
     expect(isPathIgnored('.git/objects/abc')).toBe(true);
   });
 
-  it('node_modulesやその配下のファイルを除外できること', () => {
+  it('excludes node_modules and nested packages', () => {
     expect(isPathIgnored('node_modules')).toBe(true);
     expect(isPathIgnored('node_modules/react/index.js')).toBe(true);
     expect(isPathIgnored('packages/app/node_modules/lodash/index.js')).toBe(true);
   });
 
-  it('システムファイル(.DS_Store, Thumbs.db)を除外できること', () => {
+  it('excludes system artifacts like .DS_Store and Thumbs.db', () => {
     expect(isPathIgnored('.DS_Store')).toBe(true);
     expect(isPathIgnored('src/.DS_Store')).toBe(true);
     expect(isPathIgnored('Thumbs.db')).toBe(true);
   });
 
-  it('通常ソースファイルは除外されないこと', () => {
+  it('preserves regular source and documentation files', () => {
     expect(isPathIgnored('src/index.ts')).toBe(false);
     expect(isPathIgnored('README.md')).toBe(false);
     expect(isPathIgnored('package.json')).toBe(false);
     expect(isPathIgnored('components/Header.tsx')).toBe(false);
   });
 
-  it('Windowsのバックスラッシュを含むパスでも正しく除外判定できること', () => {
+  it('handles Windows backslash separators correctly', () => {
     expect(isPathIgnored('node_modules\\react\\index.js')).toBe(true);
     expect(isPathIgnored('.git\\HEAD')).toBe(true);
     expect(isPathIgnored('src\\main.tsx')).toBe(false);

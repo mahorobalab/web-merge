@@ -42,7 +42,7 @@ self.onmessage = async (e: MessageEvent<WorkerScanRequest>) => {
       type: 'ERROR',
       id,
       side,
-      error: err.message || 'フォルダ走査中にエラーが発生しました',
+      error: err.message || 'An error occurred during directory traversal.',
     };
     self.postMessage(errorMsg);
   }

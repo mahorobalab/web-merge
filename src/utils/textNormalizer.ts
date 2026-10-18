@@ -1,30 +1,30 @@
 export interface NormalizeOptions {
-  /** 改行コードの違い（CRLF / LF / CR）を無視してLFに統一するか */
+  /** Ignore line ending differences (CRLF / LF / CR) by converting to LF */
   ignoreLineEndings?: boolean;
-  /** すべての空白文字（スペース、タブ）の違いを無視するか */
+  /** Ignore all whitespace differences (spaces and tabs) */
   ignoreAllWhitespace?: boolean;
-  /** 行頭・行末の空白文字を無視するか */
+  /** Ignore leading and trailing whitespaces on each line */
   ignoreLeadingTrailingWhitespace?: boolean;
-  /** 連続する空白文字の差異を無視（1つの半角スペースとして扱う）するか */
+  /** Collapse consecutive whitespaces into a single space */
   collapseWhitespace?: boolean;
-  /** 空行（空白のみの行を含む）を無視するか */
+  /** Ignore blank lines (including whitespace-only lines) */
   ignoreBlankLines?: boolean;
 }
 
 /**
- * 改行コードをLF(\n)に正規化する純粋関数
+ * Pure function that normalizes all line endings (CRLF, CR) to standard LF (\n).
  */
 export function normalizeLineEndings(text: string): string {
   return text.replace(/\r\n|\r/g, '\n');
 }
 
 /**
- * 指定された比較オプションに従ってテキストを正規化する純粋関数
+ * Pure function that normalizes text according to the provided comparison options.
  */
 export function normalizeText(text: string, options: NormalizeOptions = {}): string {
   let result = text;
 
-  // 1. 改行コードの正規化（デフォルトで有効またはオプション指定）
+  // 1. Normalize line endings (default is true or as specified)
   if (options.ignoreLineEndings ?? true) {
     result = normalizeLineEndings(result);
   }
@@ -36,21 +36,21 @@ export function normalizeText(text: string, options: NormalizeOptions = {}): str
     let processed = line;
 
     if (options.ignoreAllWhitespace) {
-      // すべての空白（半角スペース・タブ）を除去
+      // Strip all whitespace characters
       processed = processed.replace(/[ \t]+/g, '');
     } else {
       if (options.collapseWhitespace) {
-        // 連続する空白を1つのスペースに圧縮
+        // Collapse consecutive spaces/tabs into a single space
         processed = processed.replace(/[ \t]+/g, ' ');
       }
       if (options.ignoreLeadingTrailingWhitespace) {
-        // 行頭・行末の空白を除去
+        // Strip leading and trailing whitespace
         processed = processed.trim();
       }
     }
 
     if (options.ignoreBlankLines) {
-      // 空白のみの行または完全な空行を除外
+      // Omit whitespace-only or empty lines
       if (processed.trim().length === 0) {
         continue;
       }
@@ -63,7 +63,7 @@ export function normalizeText(text: string, options: NormalizeOptions = {}): str
 }
 
 /**
- * 2つのテキストが指定オプションのもとで一致しているかを判定する
+ * Checks whether two text strings are considered equal under the given normalization options.
  */
 export function areTextsEqual(textA: string, textB: string, options: NormalizeOptions = {}): boolean {
   if (textA === textB) {

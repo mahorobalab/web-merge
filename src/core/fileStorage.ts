@@ -7,18 +7,18 @@ export interface OpenedFile {
 }
 
 /**
- * File System Access APIがサポートされているかを判定
+ * Checks whether the File System Access API is supported in the current environment.
  */
 export function isFileSystemAccessSupported(): boolean {
   return typeof window !== 'undefined' && 'showOpenFilePicker' in window;
 }
 
 /**
- * ブラウザのネイティブファイルピッカーを開いてファイルを読み込む
+ * Opens the native file picker to read a local file.
  */
 export async function openFileWithPicker(): Promise<OpenedFile | null> {
   if (!isFileSystemAccessSupported()) {
-    throw new Error('お使いのブラウザはFile System Access APIに対応していません。');
+    throw new Error('Your browser does not support the File System Access API.');
   }
 
   try {
@@ -37,14 +37,14 @@ export async function openFileWithPicker(): Promise<OpenedFile | null> {
     };
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      return null; // ユーザーキャンセル
+      return null; // User cancelled
     }
     throw err;
   }
 }
 
 /**
- * File オブジェクト（D&Dや<input>から取得）からOpenedFileを生成する
+ * Creates an OpenedFile object from a File instance (e.g. from Drag & Drop or input element).
  */
 export async function readFileObject(file: File, handle?: FileSystemFileHandle): Promise<OpenedFile> {
   const content = await file.text();
@@ -58,8 +58,8 @@ export async function readFileObject(file: File, handle?: FileSystemFileHandle):
 }
 
 /**
- * ファイルハンドルに対して上書き保存を行う
- * 外部でファイルが変更されていた場合は競合を検知する
+ * Saves content directly back to a FileSystemFileHandle.
+ * Detects conflicts if the file was modified externally.
  */
 export async function saveFileWithHandle(
   handle: FileSystemFileHandle,
@@ -69,7 +69,7 @@ export async function saveFileWithHandle(
   try {
     const currentFile = await handle.getFile();
 
-    // 外部変更チェック
+    // Check for external file modifications
     if (expectedLastModified && currentFile.lastModified !== expectedLastModified) {
       return { success: false, conflict: true };
     }
@@ -84,13 +84,13 @@ export async function saveFileWithHandle(
       newLastModified: updatedFile.lastModified,
     };
   } catch (err) {
-    console.error('上書き保存エラー:', err);
+    console.error('File save error:', err);
     throw err;
   }
 }
 
 /**
- * フォールバック用のBlobダウンロード関数
+ * Fallback download function for browsers without write access or for D&D files without handles.
  */
 export function downloadFileContent(fileName: string, content: string): void {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
