@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
 import type { DiffEditorProps } from '@monaco-editor/react';
 import {
@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   FolderTree,
   Languages,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 import {
@@ -137,6 +139,49 @@ export const App: React.FC = () => {
 
   // Diff Editor instance ref
   const diffEditorRef = useRef<any>(null);
+
+  // Jump to next difference using getLineChanges()
+  const handleNextDiff = useCallback(() => {
+    if (!diffEditorRef.current) return;
+    const editor = diffEditorRef.current;
+    const lineChanges = editor.getLineChanges();
+    if (!lineChanges || lineChanges.length === 0) return;
+
+    const modifiedEditor = editor.getModifiedEditor();
+    const currentLine = modifiedEditor.getPosition()?.lineNumber || 1;
+
+    // Find the next change block
+    const nextChange =
+      lineChanges.find((c: any) => c.modifiedStartLineNumber > currentLine) || lineChanges[0];
+    if (nextChange) {
+      const targetLine = nextChange.modifiedStartLineNumber || 1;
+      modifiedEditor.setPosition({ lineNumber: targetLine, column: 1 });
+      modifiedEditor.revealLineInCenter(targetLine);
+      modifiedEditor.focus();
+    }
+  }, []);
+
+  // Jump to previous difference using getLineChanges()
+  const handlePrevDiff = useCallback(() => {
+    if (!diffEditorRef.current) return;
+    const editor = diffEditorRef.current;
+    const lineChanges = editor.getLineChanges();
+    if (!lineChanges || lineChanges.length === 0) return;
+
+    const modifiedEditor = editor.getModifiedEditor();
+    const currentLine = modifiedEditor.getPosition()?.lineNumber || 1;
+
+    // Find the previous change block
+    const prevChange =
+      [...lineChanges].reverse().find((c: any) => c.modifiedStartLineNumber < currentLine) ||
+      lineChanges[lineChanges.length - 1];
+    if (prevChange) {
+      const targetLine = prevChange.modifiedStartLineNumber || 1;
+      modifiedEditor.setPosition({ lineNumber: targetLine, column: 1 });
+      modifiedEditor.revealLineInCenter(targetLine);
+      modifiedEditor.focus();
+    }
+  }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' = 'success') => {
     const id = Date.now();
@@ -446,6 +491,38 @@ export const App: React.FC = () => {
     });
   };
 
+  // Global Keyboard Shortcuts (Ctrl+S, F7 / Shift+F7)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S / Cmd+S: Save current modified file
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (rightFile.isDirty) {
+          handleSave('right');
+        } else if (leftFile.isDirty) {
+          handleSave('left');
+        } else {
+          handleSave('right');
+        }
+      }
+
+      // F7 or Ctrl+Down: Next Diff
+      if ((e.key === 'F7' && !e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown')) {
+        e.preventDefault();
+        handleNextDiff();
+      }
+
+      // Shift+F7 or Ctrl+Up: Previous Diff
+      if ((e.key === 'F7' && e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp')) {
+        e.preventDefault();
+        handlePrevDiff();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [leftFile, rightFile, handleNextDiff, handlePrevDiff]);
+
   return (
     <div className="app-container">
       {/* Hidden inputs for single file selection */}
@@ -561,6 +638,24 @@ export const App: React.FC = () => {
             title={t.toolbar.mergeToRightTitle}
           >
             {t.toolbar.mergeToRight} <ArrowRight size={14} />
+          </button>
+        </div>
+
+        {/* Diff Navigation */}
+        <div className="toolbar-group">
+          <button
+            className="btn-secondary"
+            onClick={handlePrevDiff}
+            title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
+          >
+            <ChevronUp size={14} /> {t.toolbar.prevDiff}
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={handleNextDiff}
+            title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
+          >
+            {t.toolbar.nextDiff} <ChevronDown size={14} />
           </button>
         </div>
 
