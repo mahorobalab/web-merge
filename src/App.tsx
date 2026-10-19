@@ -37,6 +37,14 @@ import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
 import { FolderDiffPanel } from './components/FolderDiffPanel';
 import { ImageDiffViewer } from './components/ImageDiffViewer';
+import { DiffContextMenu } from './components/DiffContextMenu';
+import {
+  copyChunkLeftToRight,
+  copyChunkRightToLeft,
+  copySelectedLines,
+  findLineChangeAtLine,
+  type LineChangeInfo,
+} from './utils/diffChunkMerger';
 import { isImageFileName } from './utils/imageDetector';
 import { detectLanguage } from './utils/languageDetector';
 import { areTextsEqual, type NormalizeOptions } from './utils/textNormalizer';
@@ -53,6 +61,19 @@ interface FileState {
   lastModified?: number;
   isDirty: boolean;
   size: number;
+}
+
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  side: 'left' | 'right';
+  lineNumber: number;
+  hasSelection: boolean;
+  selection?: {
+    startLineNumber: number;
+    endLineNumber: number;
+  };
 }
 
 interface Toast {
@@ -141,6 +162,16 @@ export const App: React.FC = () => {
   // UI States
   const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    side: 'left',
+    lineNumber: 1,
+    hasSelection: false,
+  });
 
   // Hidden inputs for fallback file and folder pickers
   const leftFileInputRef = useRef<HTMLInputElement>(null);
@@ -571,9 +602,240 @@ export const App: React.FC = () => {
     modifiedEditor.onDidChangeModelContent(() => {
       setRightFile((prev) => ({ ...prev, isDirty: true }));
     });
+
+    originalEditor.onContextMenu((e: any) => {
+      e.event?.preventDefault();
+      handleOpenContextMenu('left', e);
+    });
+
+    modifiedEditor.onContextMenu((e: any) => {
+      e.event?.preventDefault();
+      handleOpenContextMenu('right', e);
+    });
+
+    const origDom = originalEditor.getDomNode();
+    if (origDom) {
+      origDom.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOpenContextMenuDirect('left', e.clientX, e.clientY);
+      });
+    }
+
+    const modDom = modifiedEditor.getDomNode();
+    if (modDom) {
+      modDom.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOpenContextMenuDirect('right', e.clientX, e.clientY);
+      });
+    }
   };
 
-  // Global Keyboard Shortcuts (Ctrl+S, F7 / Shift+F7)
+  const handleOpenContextMenuDirect = (side: 'left' | 'right', clientX: number, clientY: number) => {
+    const editor =
+      side === 'left'
+        ? diffEditorRef.current?.getOriginalEditor()
+        : diffEditorRef.current?.getModifiedEditor();
+    const pos = editor?.getTargetFromCoordinate?.(clientX, clientY)?.position;
+    const lineNumber = pos?.lineNumber || editor?.getPosition()?.lineNumber || 1;
+    const selection = editor?.getSelection();
+    const hasSelection = !!(selection && !selection.isEmpty());
+
+    setContextMenu({
+      visible: true,
+      x: clientX,
+      y: clientY,
+      side,
+      lineNumber,
+      hasSelection,
+      selection: hasSelection
+        ? { startLineNumber: selection.startLineNumber, endLineNumber: selection.endLineNumber }
+        : undefined,
+    });
+  };
+
+  const handleOpenContextMenu = (side: 'left' | 'right', e: any) => {
+    const position = e.target?.position;
+    const lineNumber = position?.lineNumber || 1;
+    const editor =
+      side === 'left'
+        ? diffEditorRef.current?.getOriginalEditor()
+        : diffEditorRef.current?.getModifiedEditor();
+    const selection = editor?.getSelection();
+    const hasSelection = !!(selection && !selection.isEmpty());
+
+    setContextMenu({
+      visible: true,
+      x: e.event?.posx ?? (e.event?.clientX ?? 100),
+      y: e.event?.posy ?? (e.event?.clientY ?? 100),
+      side,
+      lineNumber,
+      hasSelection,
+      selection: hasSelection
+        ? { startLineNumber: selection.startLineNumber, endLineNumber: selection.endLineNumber }
+        : undefined,
+    });
+  };
+
+  // Copy diff chunk under cursor/line from left to right
+  const handleCopyChunkToRight = useCallback(() => {
+    if (!diffEditorRef.current) return;
+    const editor = diffEditorRef.current;
+    const lineChanges: LineChangeInfo[] = editor.getLineChanges() || [];
+    const origEditor = editor.getOriginalEditor();
+    const modEditor = editor.getModifiedEditor();
+
+    const currentLine =
+      contextMenu.visible && contextMenu.side === 'left'
+        ? contextMenu.lineNumber
+        : origEditor.getPosition()?.lineNumber || 1;
+
+    let change = findLineChangeAtLine(lineChanges, 'left', currentLine);
+    if (!change && lineChanges.length > 0) {
+      change =
+        lineChanges.find((c: any) => c.originalStartLineNumber >= currentLine) || lineChanges[0];
+    }
+
+    if (!change) return;
+
+    const leftContent = origEditor.getValue();
+    const rightContent = modEditor.getValue();
+    const updatedRight = copyChunkLeftToRight(leftContent, rightContent, change);
+
+    modEditor.setValue(updatedRight);
+    setRightFile((prev) => ({ ...prev, content: updatedRight, isDirty: true }));
+    showToast(t.toasts.copiedChunkToRight);
+  }, [contextMenu, t, showToast]);
+
+  // Copy diff chunk under cursor/line from right to left
+  const handleCopyChunkToLeft = useCallback(() => {
+    if (!diffEditorRef.current) return;
+    const editor = diffEditorRef.current;
+    const lineChanges: LineChangeInfo[] = editor.getLineChanges() || [];
+    const origEditor = editor.getOriginalEditor();
+    const modEditor = editor.getModifiedEditor();
+
+    const currentLine =
+      contextMenu.visible && contextMenu.side === 'right'
+        ? contextMenu.lineNumber
+        : modEditor.getPosition()?.lineNumber || 1;
+
+    let change = findLineChangeAtLine(lineChanges, 'right', currentLine);
+    if (!change && lineChanges.length > 0) {
+      change =
+        lineChanges.find((c: any) => c.modifiedStartLineNumber >= currentLine) || lineChanges[0];
+    }
+
+    if (!change) return;
+
+    const leftContent = origEditor.getValue();
+    const rightContent = modEditor.getValue();
+    const updatedLeft = copyChunkRightToLeft(leftContent, rightContent, change);
+
+    origEditor.setValue(updatedLeft);
+    setLeftFile((prev) => ({ ...prev, content: updatedLeft, isDirty: true }));
+    showToast(t.toasts.copiedChunkToLeft);
+  }, [contextMenu, t, showToast]);
+
+  // Copy highlighted/selected lines to opposite side
+  const handleCopySelectedToRight = useCallback(() => {
+    if (!diffEditorRef.current || !contextMenu.selection) return;
+    const origEditor = diffEditorRef.current.getOriginalEditor();
+    const modEditor = diffEditorRef.current.getModifiedEditor();
+
+    const { startLineNumber, endLineNumber } = contextMenu.selection;
+    const leftContent = origEditor.getValue();
+    const rightContent = modEditor.getValue();
+    const targetPos = modEditor.getPosition()?.lineNumber || startLineNumber;
+
+    const updatedRight = copySelectedLines(
+      leftContent,
+      rightContent,
+      startLineNumber,
+      endLineNumber,
+      targetPos,
+      targetPos + (endLineNumber - startLineNumber)
+    );
+
+    modEditor.setValue(updatedRight);
+    setRightFile((prev) => ({ ...prev, content: updatedRight, isDirty: true }));
+    showToast(t.toasts.copiedSelectedToRight);
+  }, [contextMenu, t, showToast]);
+
+  const handleCopySelectedToLeft = useCallback(() => {
+    if (!diffEditorRef.current || !contextMenu.selection) return;
+    const origEditor = diffEditorRef.current.getOriginalEditor();
+    const modEditor = diffEditorRef.current.getModifiedEditor();
+
+    const { startLineNumber, endLineNumber } = contextMenu.selection;
+    const leftContent = origEditor.getValue();
+    const rightContent = modEditor.getValue();
+    const targetPos = origEditor.getPosition()?.lineNumber || startLineNumber;
+
+    const updatedLeft = copySelectedLines(
+      rightContent,
+      leftContent,
+      startLineNumber,
+      endLineNumber,
+      targetPos,
+      targetPos + (endLineNumber - startLineNumber)
+    );
+
+    origEditor.setValue(updatedLeft);
+    setLeftFile((prev) => ({ ...prev, content: updatedLeft, isDirty: true }));
+    showToast(t.toasts.copiedSelectedToLeft);
+  }, [contextMenu, t, showToast]);
+
+  const getActiveContextMenuEditor = useCallback(() => {
+    if (!diffEditorRef.current) return null;
+    return contextMenu.side === 'left'
+      ? diffEditorRef.current.getOriginalEditor()
+      : diffEditorRef.current.getModifiedEditor();
+  }, [contextMenu.side]);
+
+  const handleUndo = useCallback(() => {
+    const ed = getActiveContextMenuEditor();
+    ed?.trigger('contextmenu', 'undo', null);
+    ed?.focus();
+  }, [getActiveContextMenuEditor]);
+
+  const handleRedo = useCallback(() => {
+    const ed = getActiveContextMenuEditor();
+    ed?.trigger('contextmenu', 'redo', null);
+    ed?.focus();
+  }, [getActiveContextMenuEditor]);
+
+  const handleCut = useCallback(() => {
+    const ed = getActiveContextMenuEditor();
+    ed?.focus();
+    document.execCommand('cut');
+  }, [getActiveContextMenuEditor]);
+
+  const handleCopy = useCallback(() => {
+    const ed = getActiveContextMenuEditor();
+    ed?.focus();
+    document.execCommand('copy');
+  }, [getActiveContextMenuEditor]);
+
+  const handlePaste = useCallback(async () => {
+    const ed = getActiveContextMenuEditor();
+    ed?.focus();
+    try {
+      const text = await navigator.clipboard.readText();
+      ed?.trigger('keyboard', 'type', { text });
+    } catch {
+      document.execCommand('paste');
+    }
+  }, [getActiveContextMenuEditor]);
+
+  const handleSelectAll = useCallback(() => {
+    const ed = getActiveContextMenuEditor();
+    ed?.trigger('contextmenu', 'editor.action.selectAll', null);
+    ed?.focus();
+  }, [getActiveContextMenuEditor]);
+
+  // Global Keyboard Shortcuts (Ctrl+S, F7 / Shift+F7, Alt+Right/Left, F4)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+S / Cmd+S: Save current modified file
@@ -588,14 +850,34 @@ export const App: React.FC = () => {
         }
       }
 
-      // F7 or Ctrl+Down: Next Diff
-      if ((e.key === 'F7' && !e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown')) {
+      // Alt+ArrowRight: Copy chunk to right
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleCopyChunkToRight();
+      }
+
+      // Alt+ArrowLeft: Copy chunk to left
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleCopyChunkToLeft();
+      }
+
+      // F7 or F4 or Ctrl+Down: Next Diff
+      if (
+        (e.key === 'F7' && !e.shiftKey) ||
+        (e.key === 'F4' && !e.shiftKey) ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown')
+      ) {
         e.preventDefault();
         handleNextDiff();
       }
 
-      // Shift+F7 or Ctrl+Up: Previous Diff
-      if ((e.key === 'F7' && e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp')) {
+      // Shift+F7 or Shift+F4 or Ctrl+Up: Previous Diff
+      if (
+        (e.key === 'F7' && e.shiftKey) ||
+        (e.key === 'F4' && e.shiftKey) ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp')
+      ) {
         e.preventDefault();
         handlePrevDiff();
       }
@@ -603,7 +885,14 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [leftFile, rightFile, handleNextDiff, handlePrevDiff]);
+  }, [
+    leftFile,
+    rightFile,
+    handleNextDiff,
+    handlePrevDiff,
+    handleCopyChunkToRight,
+    handleCopyChunkToLeft,
+  ]);
 
   return (
     <div className="app-container">
@@ -886,6 +1175,7 @@ export const App: React.FC = () => {
                 minimap: { enabled: true },
                 scrollBeyondLastLine: false,
                 diffCodeLens: true,
+                contextmenu: false,
               }}
             />
           )}
@@ -923,6 +1213,30 @@ export const App: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* Custom WinMerge-style Context Menu */}
+      {contextMenu.visible && (
+        <DiffContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          side={contextMenu.side}
+          hasSelection={contextMenu.hasSelection}
+          hasLineChange={true}
+          onCopyToRight={handleCopyChunkToRight}
+          onCopyToLeft={handleCopyChunkToLeft}
+          onCopySelectedToRight={handleCopySelectedToRight}
+          onCopySelectedToLeft={handleCopySelectedToLeft}
+          onNextDiff={handleNextDiff}
+          onPrevDiff={handlePrevDiff}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onCut={handleCut}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          onSelectAll={handleSelectAll}
+          onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
+        />
+      )}
 
       {/* Toast Notifications */}
       <div className="toast-container">
