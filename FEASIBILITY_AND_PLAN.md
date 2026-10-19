@@ -73,12 +73,14 @@ gantt
     Directory Picker & Tree View        :done, p2_1, after p1_3, 2d
     Web Worker Background Scan          :done, p2_2, after p2_1, 2d
     Exclusion Filters (.git/node_modules):done, p2_3, after p2_2, 1d
-    section Phase 3: Performance (Wasm)
-    Rust/Wasm Hashing Engine (xxHash3)  :p3_1, after p2_3, 3d
-    Virtual Scrolling Tree List         :p3_2, after p3_1, 2d
-    section Phase 4: Extensions
-    Encoding Auto-detection (Shift-JIS) :p4_1, after p3_2, 2d
-    Image / Binary Diff & PWA Support   :p4_2, after p4_1, 3d
+    section Phase 3: Performance & Scalability
+    Web Crypto SHA-256 Hashing          :done, p3_1, after p2_3, 2d
+    Virtual Scrolling (10,000+ files)   :done, p3_2, after p3_1, 2d
+    section Phase 4: Extensions & Polish
+    Encoding Detection (Shift-JIS/EUC)  :done, p4_1, after p3_2, 2d
+    Diff Report / Patch Export          :done, p4_2, after p4_1, 1d
+    Image Diff Viewer (Swipe/Blend)     :done, p4_3, after p4_2, 2d
+    PWA & Offline Capability            :done, p4_4, after p4_3, 1d
 ```
 
 ---

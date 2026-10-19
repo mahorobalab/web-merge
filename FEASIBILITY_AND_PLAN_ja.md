@@ -99,17 +99,19 @@ gantt
     section Phase 1: MVP
     単一ファイル比較・上書き保存        :done, p1_1, 2026-10-20, 2d
     空白・改行コード無視トグル          :done, p1_2, after p1_1, 1d
-    左右マージコントロール             :active, p1_3, after p1_2, 2d
+    左右マージコントロール             :done, p1_3, after p1_2, 1d
     section Phase 2: フォルダ比較基礎
-    Directory Picker & ツリーUI        :p2_1, after p1_3, 3d
-    Web Worker非同期スキャン          :p2_2, after p2_1, 3d
-    除外フィルタ (.git/node_modules)   :p2_3, after p2_2, 2d
-    section Phase 3: 高速化 & Wasm
-    Rust/Wasmハッシュ比較エンジン       :p3_1, after p2_3, 4d
-    仮想スクロールリスト               :p3_2, after p3_1, 2d
-    section Phase 4: 実用拡張
-    文字コード自動判定 (Shift-JIS)     :p4_1, after p3_2, 3d
-    画像差分・PWAオフライン対応        :p4_2, after p4_1, 3d
+    Directory Picker & ツリーUI        :done, p2_1, after p1_3, 2d
+    Web Worker非同期スキャン          :done, p2_2, after p2_1, 2d
+    除外フィルタ (.git/node_modules)   :done, p2_3, after p2_2, 1d
+    section Phase 3: 高速化・スケーラビリティ
+    Web Crypto SHA-256ハッシュ比較    :done, p3_1, after p2_3, 2d
+    仮想スクロールリスト (万単位対応)   :done, p3_2, after p3_1, 2d
+    section Phase 4: 実用拡張・プロダクト化
+    文字コード自動判定 (Shift-JIS/EUC) :done, p4_1, after p3_2, 2d
+    差分レポート/パッチ出力 (HTML/Patch):done, p4_2, after p4_1, 1d
+    画像差分ビューア (スワイプ/差分合成):done, p4_3, after p4_2, 2d
+    PWA・完全オフライン対応            :done, p4_4, after p4_3, 1d
 ```
 
 ### Phase 1: MVP（単一ファイルの1対1比較・編集・保存）
