@@ -20,8 +20,11 @@ describe('ignoreFilter', () => {
     expect(isPathIgnored('Thumbs.db')).toBe(true);
   });
 
-  it('preserves regular source and documentation files', () => {
+  it('preserves regular source, build outputs, and documentation files', () => {
     expect(isPathIgnored('src/index.ts')).toBe(false);
+    expect(isPathIgnored('dist/manifest.json')).toBe(false);
+    expect(isPathIgnored('dist/新規 テキスト ドキュメント.txt')).toBe(false);
+    expect(isPathIgnored('build/bundle.js')).toBe(false);
     expect(isPathIgnored('README.md')).toBe(false);
     expect(isPathIgnored('package.json')).toBe(false);
     expect(isPathIgnored('components/Header.tsx')).toBe(false);

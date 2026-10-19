@@ -286,6 +286,12 @@
   border: 1px solid #ef4444;
 }
 
+.toast.info {
+  background: #1e3a8a;
+  color: #dbeafe;
+  border: 1px solid #3b82f6;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

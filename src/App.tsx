@@ -10,6 +10,7 @@ import {
   FolderOpen,
   CheckCircle2,
   AlertCircle,
+  Info,
   Columns,
   Rows,
   ShieldCheck,
@@ -79,7 +80,7 @@ interface ContextMenuState {
 interface Toast {
   id: number;
   message: string;
-  type: 'success' | 'warning' | 'error';
+  type: 'success' | 'warning' | 'error' | 'info';
 }
 
 const DEFAULT_LEFT_DEMO = `// WebMerge: Left file (Original)
@@ -139,6 +140,10 @@ export const App: React.FC = () => {
   const [showFolderPanel, setShowFolderPanel] = useState(true);
   const [leftFolderName, setLeftFolderName] = useState<string>('');
   const [rightFolderName, setRightFolderName] = useState<string>('');
+  const [leftDirHandle, setLeftDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [rightDirHandle, setRightDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [leftFallbackFiles, setLeftFallbackFiles] = useState<FileList | null>(null);
+  const [rightFallbackFiles, setRightFallbackFiles] = useState<FileList | null>(null);
   const [leftEntries, setLeftEntries] = useState<FileEntry[]>([]);
   const [rightEntries, setRightEntries] = useState<FileEntry[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | undefined>();
@@ -225,7 +230,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
@@ -292,39 +297,31 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open directory using background Web Worker scan
+  // Select directory (either via File System Access API or file input fallback)
   const handleOpenFolder = async (side: 'left' | 'right') => {
     if (isFileSystemAccessSupported()) {
       try {
         const dirHandle = await openDirectoryWithPicker();
         if (!dirHandle) return;
 
-        setIsScanning(true);
-        setScanProgressText(`${dirHandle.name}...`);
         if (side === 'left') {
+          setLeftDirHandle(dirHandle);
           setLeftFolderName(dirHandle.name);
+          setLeftFallbackFiles(null);
         } else {
+          setRightDirHandle(dirHandle);
           setRightFolderName(dirHandle.name);
+          setRightFallbackFiles(null);
         }
 
-        const entries = await scanFolderAsync(dirHandle, side, {
-          onProgress: (count, path) => {
-            setScanProgressText(`${count} (${path})`);
-          },
-        });
-
-        if (side === 'left') {
-          setLeftEntries(entries);
-        } else {
-          setRightEntries(entries);
-        }
-
-        showToast(t.toasts.openedFolder(side === 'left' ? 'Left' : 'Right', dirHandle.name, entries.length), 'success');
+        showToast(
+          locale === 'ja'
+            ? `${side === 'left' ? '左' : '右'}フォルダを選択しました: "${dirHandle.name}"`
+            : `Selected ${side} folder: "${dirHandle.name}"`,
+          'info'
+        );
       } catch (err: any) {
         showToast(t.toasts.fileError(err.message), 'error');
-      } finally {
-        setIsScanning(false);
-        setScanProgressText('');
       }
     } else {
       // Fallback input for browsers without showDirectoryPicker
@@ -340,17 +337,94 @@ export const App: React.FC = () => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const folderName = files[0].webkitRelativePath?.split('/')[0] || 'Selected Folder';
-      const parsed = parseFileList(files);
       if (side === 'left') {
+        setLeftFallbackFiles(files);
         setLeftFolderName(folderName);
-        setLeftEntries(parsed);
+        setLeftDirHandle(null);
       } else {
+        setRightFallbackFiles(files);
         setRightFolderName(folderName);
-        setRightEntries(parsed);
+        setRightDirHandle(null);
       }
-      showToast(t.toasts.openedFolder(side === 'left' ? 'Left' : 'Right', folderName, parsed.length), 'success');
+      showToast(
+        locale === 'ja'
+          ? `${side === 'left' ? '左' : '右'}フォルダを選択しました: "${folderName}"`
+          : `Selected ${side} folder: "${folderName}"`,
+        'info'
+      );
     }
-    e.target.value = '';
+  };
+
+  // Explicit folder compare action
+  const handleExecuteFolderCompare = async () => {
+    const hasLeft = leftDirHandle || (leftFallbackFiles && leftFallbackFiles.length > 0);
+    const hasRight = rightDirHandle || (rightFallbackFiles && rightFallbackFiles.length > 0);
+
+    if (!hasLeft || !hasRight) {
+      showToast(t.folderPanel.selectBothPrompt, 'warning');
+      return;
+    }
+
+    setIsScanning(true);
+    setScanProgressText(t.folderPanel.scanning);
+
+    try {
+      let newLeftEntries: FileEntry[] = [];
+      let newRightEntries: FileEntry[] = [];
+
+      // Scan left folder
+      if (leftDirHandle) {
+        setScanProgressText(`${leftDirHandle.name}...`);
+        newLeftEntries = await scanFolderAsync(leftDirHandle, 'left', {
+          onProgress: (count, path) => {
+            setScanProgressText(`[L] ${count} (${path})`);
+          },
+        });
+      } else if (leftFallbackFiles) {
+        newLeftEntries = parseFileList(leftFallbackFiles);
+      }
+
+      // Scan right folder
+      if (rightDirHandle) {
+        setScanProgressText(`${rightDirHandle.name}...`);
+        newRightEntries = await scanFolderAsync(rightDirHandle, 'right', {
+          onProgress: (count, path) => {
+            setScanProgressText(`[R] ${count} (${path})`);
+          },
+        });
+      } else if (rightFallbackFiles) {
+        newRightEntries = parseFileList(rightFallbackFiles);
+      }
+
+      setLeftEntries(newLeftEntries);
+      setRightEntries(newRightEntries);
+
+      // Compute diff summary to show in toast
+      const matched = matchFolderEntries(newLeftEntries, newRightEntries);
+      const diffCount = matched.summary.modified + matched.summary.leftOnly + matched.summary.rightOnly;
+      showToast(t.toasts.comparedSuccess(matched.summary.total, diffCount), 'success');
+    } catch (err: any) {
+      showToast(t.toasts.fileError(err.message), 'error');
+    } finally {
+      setIsScanning(false);
+      setScanProgressText('');
+    }
+  };
+
+  // Reset folder comparison state
+  const handleResetFolderCompare = () => {
+    setLeftFolderName('');
+    setRightFolderName('');
+    setLeftDirHandle(null);
+    setRightDirHandle(null);
+    setLeftFallbackFiles(null);
+    setRightFallbackFiles(null);
+    setLeftEntries([]);
+    setRightEntries([]);
+    setSelectedPath(undefined);
+    if (leftDirInputRef.current) leftDirInputRef.current.value = '';
+    if (rightDirInputRef.current) rightDirInputRef.current.value = '';
+    showToast(t.toasts.resetSuccess, 'info');
   };
 
   // On-demand load of file contents when a diff item is clicked
@@ -1103,8 +1177,14 @@ export const App: React.FC = () => {
             selectedPath={selectedPath}
             isScanning={isScanning}
             scanProgressText={scanProgressText}
+            canCompare={Boolean(
+              (leftDirHandle || (leftFallbackFiles && leftFallbackFiles.length > 0)) &&
+              (rightDirHandle || (rightFallbackFiles && rightFallbackFiles.length > 0))
+            )}
             onOpenLeftFolder={() => handleOpenFolder('left')}
             onOpenRightFolder={() => handleOpenFolder('right')}
+            onCompareFolders={handleExecuteFolderCompare}
+            onResetFolders={handleResetFolderCompare}
             onSelectFile={handleSelectDiffItem}
           />
         )}
@@ -1245,6 +1325,7 @@ export const App: React.FC = () => {
             {toast.type === 'success' && <CheckCircle2 size={16} />}
             {toast.type === 'warning' && <AlertCircle size={16} />}
             {toast.type === 'error' && <AlertCircle size={16} />}
+            {toast.type === 'info' && <Info size={16} />}
             <span>{toast.message}</span>
           </div>
         ))}

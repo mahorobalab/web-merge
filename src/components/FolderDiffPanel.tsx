@@ -10,6 +10,8 @@ import {
   FileMinus,
   FileDiff,
   Check,
+  Play,
+  RotateCcw,
 } from 'lucide-react';
 import type { DiffItem, DiffSummary, DiffStatus } from '../utils/diffMatcher';
 import { useTranslation } from '../i18n/I18nContext';
@@ -24,8 +26,11 @@ interface FolderDiffPanelProps {
   selectedPath?: string;
   isScanning: boolean;
   scanProgressText?: string;
+  canCompare?: boolean;
   onOpenLeftFolder: () => void;
   onOpenRightFolder: () => void;
+  onCompareFolders: () => void;
+  onResetFolders: () => void;
   onSelectFile: (item: DiffItem) => void;
 }
 
@@ -39,8 +44,11 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
   selectedPath,
   isScanning,
   scanProgressText,
+  canCompare = false,
   onOpenLeftFolder,
   onOpenRightFolder,
+  onCompareFolders,
+  onResetFolders,
   onSelectFile,
 }) => {
   const { t } = useTranslation();
@@ -143,6 +151,26 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
           </span>
           <button className="btn-secondary" style={{ padding: '3px 8px' }} onClick={onOpenRightFolder}>
             <FolderOpen size={13} /> {t.folderPanel.select}
+          </button>
+        </div>
+
+        {/* Action buttons: Compare & Reset */}
+        <div className="folder-actions-row">
+          <button
+            className="btn-primary compare-btn"
+            onClick={onCompareFolders}
+            disabled={isScanning || !canCompare}
+            title={t.folderPanel.compareTitle}
+          >
+            <Play size={13} fill="currentColor" /> {t.folderPanel.compare}
+          </button>
+          <button
+            className="btn-secondary reset-btn"
+            onClick={onResetFolders}
+            disabled={isScanning || (!leftFolderName && !rightFolderName && diffItems.length === 0)}
+            title={t.folderPanel.resetTitle}
+          >
+            <RotateCcw size={13} /> {t.folderPanel.reset}
           </button>
         </div>
       </div>
