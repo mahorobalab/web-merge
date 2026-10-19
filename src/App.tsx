@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
 import type { DiffEditorProps } from '@monaco-editor/react';
 import {
@@ -21,6 +21,7 @@ import {
   ChevronUp,
   FileCode,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 
 import {
@@ -37,7 +38,8 @@ import { generateUnifiedDiff, generateHtmlReport } from './utils/diffExporter';
 import { openDirectoryWithPicker, parseFileList } from './core/directoryScanner';
 import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
-import { FolderDiffPanel } from './components/FolderDiffPanel';
+import { FolderDiffTableView } from './components/FolderDiffTableView';
+import { TabBar, type TabItem } from './components/TabBar';
 import { ImageDiffViewer } from './components/ImageDiffViewer';
 import { DiffContextMenu } from './components/DiffContextMenu';
 import { OpenDialog } from './components/OpenDialog';
@@ -84,6 +86,12 @@ interface Toast {
   id: number;
   message: string;
   type: 'success' | 'warning' | 'error' | 'info';
+}
+
+export interface AppTab extends TabItem {
+  path?: string;
+  leftFile?: FileState;
+  rightFile?: FileState;
 }
 
 const DEFAULT_LEFT_DEMO = `// WebMerge: Left file (Original)
@@ -142,8 +150,22 @@ export const App: React.FC = () => {
   // Floating Open Dialog State
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
 
+  // Tab Management State
+  const [tabs, setTabs] = useState<AppTab[]>([
+    {
+      id: 'demo-file',
+      type: 'file',
+      title: 'left_sample.ts ↔ right_sample.ts',
+      canClose: false,
+    },
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>('demo-file');
+
+  const activeTab = useMemo(() => {
+    return tabs.find((t) => t.id === activeTabId) || tabs[0];
+  }, [tabs, activeTabId]);
+
   // Folder comparison states
-  const [showFolderPanel, setShowFolderPanel] = useState(false);
   const [leftFolderName, setLeftFolderName] = useState<string>('');
   const [rightFolderName, setRightFolderName] = useState<string>('');
   const [leftDirHandle, setLeftDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -152,7 +174,6 @@ export const App: React.FC = () => {
   const [rightFallbackFiles, setRightFallbackFiles] = useState<FileList | null>(null);
   const [leftEntries, setLeftEntries] = useState<FileEntry[]>([]);
   const [rightEntries, setRightEntries] = useState<FileEntry[]>([]);
-  const [selectedPath, setSelectedPath] = useState<string | undefined>();
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgressText, setScanProgressText] = useState<string>('');
 
@@ -254,6 +275,54 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Dev-only helper for browser verification of folder comparison
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      (window as any).__loadSampleFolderCompare = () => {
+        const demoLeft: FileEntry[] = [
+          { path: 'manifest.json', name: 'manifest.json', size: 1024, lastModified: 1729330000000 },
+          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
+          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
+          { path: 'dist/manifest.json', name: 'manifest.json', size: 850, lastModified: 1729330000000 },
+          { path: 'dist/assets/app.js', name: 'app.js', size: 12048, lastModified: 1729330000000 },
+          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
+        ];
+        const demoRight: FileEntry[] = [
+          { path: 'manifest.json', name: 'manifest.json', size: 1080, lastModified: 1729331000000 },
+          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
+          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
+          { path: 'dist/manifest.json', name: 'manifest.json', size: 920, lastModified: 1729332000000 },
+          { path: 'dist/assets/app.js', name: 'app.js', size: 13000, lastModified: 1729331500000 },
+          { path: 'dist/新規 テキスト ドキュメント.txt', name: '新規 テキスト ドキュメント.txt', size: 120, lastModified: 1729332000000 },
+          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
+        ];
+        setLeftFolderName('freelandre1');
+        setRightFolderName('freelandre2');
+        setLeftEntries(demoLeft);
+        setRightEntries(demoRight);
+
+        const folderTabId = 'folder-diff';
+        const folderTab: AppTab = {
+          id: folderTabId,
+          type: 'folder',
+          title: 'freelandre1 ↔ freelandre2',
+          canClose: false,
+        };
+        setTabs((prev) => {
+          const exists = prev.some((t) => t.id === folderTabId);
+          if (exists) return prev.map((t) => (t.id === folderTabId ? folderTab : t));
+          return [folderTab, ...prev];
+        });
+        setActiveTabId(folderTabId);
+      };
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('demo') === 'folder' || params.get('loadSample') === 'true') {
+        (window as any).__loadSampleFolderCompare();
+      }
+    }
   }, []);
 
   // Automatic syntax detection
@@ -420,6 +489,24 @@ export const App: React.FC = () => {
       // Compute diff summary to show in toast
       const matched = matchFolderEntries(newLeftEntries, newRightEntries);
       const diffCount = matched.summary.modified + matched.summary.leftOnly + matched.summary.rightOnly;
+
+      const folderTabId = 'folder-diff';
+      const folderTab: AppTab = {
+        id: folderTabId,
+        type: 'folder',
+        title: `${leftFolderName || 'Left'} ↔ ${rightFolderName || 'Right'}`,
+        canClose: false,
+      };
+
+      setTabs((prev) => {
+        const exists = prev.some((t) => t.id === folderTabId);
+        if (exists) {
+          return prev.map((t) => (t.id === folderTabId ? folderTab : t));
+        }
+        return [folderTab, ...prev];
+      });
+      setActiveTabId(folderTabId);
+
       showToast(t.toasts.comparedSuccess(matched.summary.total, diffCount), 'success');
     } catch (err: any) {
       showToast(t.toasts.fileError(err.message), 'error');
@@ -439,10 +526,187 @@ export const App: React.FC = () => {
     setRightFallbackFiles(null);
     setLeftEntries([]);
     setRightEntries([]);
-    setSelectedPath(undefined);
     if (leftDirInputRef.current) leftDirInputRef.current.value = '';
     if (rightDirInputRef.current) rightDirInputRef.current.value = '';
     showToast(t.toasts.resetSuccess, 'info');
+  };
+
+  // Open dialog handlers
+  // Tab Switching Handler
+  const handleSelectTab = (nextTabId: string) => {
+    if (nextTabId === activeTabId) return;
+
+    // Save current file states to active tab if it's a file tab
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.id === activeTabId && tab.type === 'file') {
+          return {
+            ...tab,
+            leftFile: { ...leftFile },
+            rightFile: { ...rightFile },
+            isDirty: leftFile.isDirty || rightFile.isDirty,
+          };
+        }
+        return tab;
+      })
+    );
+
+    // If target tab is a file tab with saved files, restore them
+    const targetTab = tabs.find((t) => t.id === nextTabId);
+    if (targetTab && targetTab.type === 'file') {
+      if (targetTab.leftFile) setLeftFile(targetTab.leftFile);
+      if (targetTab.rightFile) setRightFile(targetTab.rightFile);
+    }
+
+    setActiveTabId(nextTabId);
+  };
+
+  // Tab Close Handler
+  const handleCloseTab = (tabId: string) => {
+    setTabs((prev) => {
+      const filtered = prev.filter((t) => t.id !== tabId);
+      if (activeTabId === tabId) {
+        // Switch to folder-diff tab if available, else first remaining tab
+        const folderTab = filtered.find((t) => t.id === 'folder-diff');
+        const nextActive = folderTab ? folderTab.id : (filtered[0]?.id || '');
+        if (nextActive) {
+          const target = filtered.find((t) => t.id === nextActive);
+          if (target && target.type === 'file') {
+            if (target.leftFile) setLeftFile(target.leftFile);
+            if (target.rightFile) setRightFile(target.rightFile);
+          }
+          setActiveTabId(nextActive);
+        }
+      }
+      return filtered;
+    });
+  };
+
+  // Open file diff in a tab from FolderDiffTableView double-click
+  const handleOpenFileDiffFromTable = async (item: DiffItem) => {
+    const tabId = 'file-' + item.path;
+    const existingTab = tabs.find((t) => t.id === tabId);
+
+    if (existingTab) {
+      handleSelectTab(tabId);
+      return;
+    }
+
+    // Load file contents on-demand
+    try {
+      let leftContent = '';
+      let leftEncoding: SupportedEncoding = 'utf-8';
+      let leftImageUrl: string | undefined;
+      let leftHandle: FileSystemFileHandle | undefined;
+      let leftModified = 0;
+      let leftSize = 0;
+
+      let rightContent = '';
+      let rightEncoding: SupportedEncoding = 'utf-8';
+      let rightImageUrl: string | undefined;
+      let rightHandle: FileSystemFileHandle | undefined;
+      let rightModified = 0;
+      let rightSize = 0;
+
+      if (item.left) {
+        leftHandle = item.left.handle;
+        leftModified = item.left.lastModified;
+        leftSize = item.left.size;
+        if (item.left.handle) {
+          const res = await readTextFromHandle(item.left.handle);
+          leftContent = res.text;
+          leftEncoding = res.encoding;
+          leftImageUrl = res.imageUrl;
+        } else if (leftFallbackFiles) {
+          const fileObj = Array.from(leftFallbackFiles).find(
+            (f) => f.webkitRelativePath.endsWith(item.path) || f.name === item.name
+          );
+          if (fileObj) {
+            const res = await readFileObject(fileObj);
+            leftContent = res.content;
+            leftEncoding = res.encoding;
+            leftImageUrl = res.imageUrl;
+          }
+        }
+      }
+
+      if (item.right) {
+        rightHandle = item.right.handle;
+        rightModified = item.right.lastModified;
+        rightSize = item.right.size;
+        if (item.right.handle) {
+          const res = await readTextFromHandle(item.right.handle);
+          rightContent = res.text;
+          rightEncoding = res.encoding;
+          rightImageUrl = res.imageUrl;
+        } else if (rightFallbackFiles) {
+          const fileObj = Array.from(rightFallbackFiles).find(
+            (f) => f.webkitRelativePath.endsWith(item.path) || f.name === item.name
+          );
+          if (fileObj) {
+            const res = await readFileObject(fileObj);
+            rightContent = res.content;
+            rightEncoding = res.encoding;
+            rightImageUrl = res.imageUrl;
+          }
+        }
+      }
+
+      const newLeftFile: FileState = {
+        name: item.left?.name || item.name,
+        path: item.path,
+        content: leftContent,
+        encoding: leftEncoding,
+        imageUrl: leftImageUrl,
+        handle: leftHandle,
+        lastModified: leftModified,
+        isDirty: false,
+        size: leftSize,
+      };
+
+      const newRightFile: FileState = {
+        name: item.right?.name || item.name,
+        path: item.path,
+        content: rightContent,
+        encoding: rightEncoding,
+        imageUrl: rightImageUrl,
+        handle: rightHandle,
+        lastModified: rightModified,
+        isDirty: false,
+        size: rightSize,
+      };
+
+      const newTab: AppTab = {
+        id: tabId,
+        type: 'file',
+        title: item.name,
+        path: item.path,
+        canClose: true,
+        leftFile: newLeftFile,
+        rightFile: newRightFile,
+      };
+
+      setTabs((prev) => {
+        const updated = prev.map((tab) => {
+          if (tab.id === activeTabId && tab.type === 'file') {
+            return {
+              ...tab,
+              leftFile: { ...leftFile },
+              rightFile: { ...rightFile },
+              isDirty: leftFile.isDirty || rightFile.isDirty,
+            };
+          }
+          return tab;
+        });
+        return [...updated, newTab];
+      });
+
+      setLeftFile(newLeftFile);
+      setRightFile(newRightFile);
+      setActiveTabId(tabId);
+    } catch (err: any) {
+      showToast(t.toasts.fileError(err.message), 'error');
+    }
   };
 
   // Open dialog handlers
@@ -452,7 +716,8 @@ export const App: React.FC = () => {
     leftReadOnly: boolean,
     rightReadOnly: boolean
   ) => {
-    setLeftFile({
+    const tabId = 'file-' + Date.now();
+    const newLeftFile: FileState = {
       name: leftOpened.name,
       content: leftOpened.content,
       encoding: leftOpened.encoding,
@@ -462,9 +727,9 @@ export const App: React.FC = () => {
       isDirty: false,
       size: leftOpened.size,
       readOnly: leftReadOnly,
-    });
+    };
 
-    setRightFile({
+    const newRightFile: FileState = {
       name: rightOpened.name,
       content: rightOpened.content,
       encoding: rightOpened.encoding,
@@ -474,9 +739,22 @@ export const App: React.FC = () => {
       isDirty: false,
       size: rightOpened.size,
       readOnly: rightReadOnly,
-    });
+    };
 
-    setShowFolderPanel(false);
+    const newTab: AppTab = {
+      id: tabId,
+      type: 'file',
+      title: `${leftOpened.name} ↔ ${rightOpened.name}`,
+      canClose: true,
+      leftFile: newLeftFile,
+      rightFile: newRightFile,
+    };
+
+    setTabs((prev) => [...prev, newTab]);
+    setLeftFile(newLeftFile);
+    setRightFile(newRightFile);
+    setActiveTabId(tabId);
+
     showToast(
       locale === 'ja'
         ? `ファイル比較を開始しました: "${leftOpened.name}" vs "${rightOpened.name}"`
@@ -497,7 +775,23 @@ export const App: React.FC = () => {
     setRightDirHandle(right.handle || null);
     setLeftFallbackFiles(left.fallbackFiles || null);
     setRightFallbackFiles(right.fallbackFiles || null);
-    setShowFolderPanel(true);
+
+    const folderTabId = 'folder-diff';
+    const folderTab: AppTab = {
+      id: folderTabId,
+      type: 'folder',
+      title: `${left.name} ↔ ${right.name}`,
+      canClose: false,
+    };
+
+    setTabs((prev) => {
+      const exists = prev.some((t) => t.id === folderTabId);
+      if (exists) {
+        return prev.map((t) => (t.id === folderTabId ? folderTab : t));
+      }
+      return [folderTab, ...prev];
+    });
+    setActiveTabId(folderTabId);
 
     setIsScanning(true);
     setScanProgressText(t.folderPanel.scanning);
@@ -538,78 +832,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // On-demand load of file contents when a diff item is clicked
-  const handleSelectDiffItem = async (item: DiffItem) => {
-    setSelectedPath(item.path);
-
-    try {
-      let leftContent = '';
-      let leftEncoding: SupportedEncoding = 'utf-8';
-      let leftImageUrl: string | undefined;
-      let leftHandle: FileSystemFileHandle | undefined;
-      let leftModified = 0;
-      let leftSize = 0;
-
-      let rightContent = '';
-      let rightEncoding: SupportedEncoding = 'utf-8';
-      let rightImageUrl: string | undefined;
-      let rightHandle: FileSystemFileHandle | undefined;
-      let rightModified = 0;
-      let rightSize = 0;
-
-      // Load left file content if present
-      if (item.left) {
-        leftHandle = item.left.handle;
-        leftModified = item.left.lastModified;
-        leftSize = item.left.size;
-        if (item.left.handle) {
-          const res = await readTextFromHandle(item.left.handle);
-          leftContent = res.text;
-          leftEncoding = res.encoding;
-          leftImageUrl = res.imageUrl;
-        }
-      }
-
-      // Load right file content if present
-      if (item.right) {
-        rightHandle = item.right.handle;
-        rightModified = item.right.lastModified;
-        rightSize = item.right.size;
-        if (item.right.handle) {
-          const res = await readTextFromHandle(item.right.handle);
-          rightContent = res.text;
-          rightEncoding = res.encoding;
-          rightImageUrl = res.imageUrl;
-        }
-      }
-
-      setLeftFile({
-        name: item.left?.name || item.name,
-        path: item.path,
-        content: leftContent,
-        encoding: leftEncoding,
-        imageUrl: leftImageUrl,
-        handle: leftHandle,
-        lastModified: leftModified,
-        isDirty: false,
-        size: leftSize,
-      });
-
-      setRightFile({
-        name: item.right?.name || item.name,
-        path: item.path,
-        content: rightContent,
-        encoding: rightEncoding,
-        imageUrl: rightImageUrl,
-        handle: rightHandle,
-        lastModified: rightModified,
-        isDirty: false,
-        size: rightSize,
-      });
-    } catch (err: any) {
-      showToast(t.toasts.fileError(err.message), 'error');
-    }
-  };
 
   // Save handling
   const handleSave = async (side: 'left' | 'right') => {
@@ -1129,7 +1351,19 @@ export const App: React.FC = () => {
             <span>{t.app.zeroServer}</span>
           </div>
           <div className="stat-item">
-            {isMatch ? (
+            {activeTab?.type === 'folder' ? (
+              diffResult.summary.modified + diffResult.summary.leftOnly + diffResult.summary.rightOnly === 0 ? (
+                <span className="stat-diff-tag equal">
+                  <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  {t.app.noDiff}
+                </span>
+              ) : (
+                <span className="stat-diff-tag different">
+                  <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  {diffResult.summary.modified + diffResult.summary.leftOnly + diffResult.summary.rightOnly} {t.app.hasDiff}
+                </span>
+              )
+            ) : isMatch ? (
               <span className="stat-diff-tag equal">
                 <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
                 {t.app.noDiff}
@@ -1156,8 +1390,9 @@ export const App: React.FC = () => {
       </header>
 
       {/* Toolbar */}
+      {/* Toolbar */}
       <div className="app-toolbar">
-        {/* Left File Controls & New Comparison */}
+        {/* Comparison Initiation */}
         <div className="toolbar-group">
           <button
             className="btn-primary"
@@ -1167,263 +1402,304 @@ export const App: React.FC = () => {
           >
             <FilePlus2 size={14} /> {t.toolbar.newCompare}
           </button>
-          <button
-            className={`btn-secondary ${showFolderPanel ? 'active' : ''}`}
-            onClick={() => setShowFolderPanel(!showFolderPanel)}
-            title={t.toolbar.toggleFolderPanel}
-          >
-            <FolderTree size={14} /> {t.toolbar.folderDiff}
-          </button>
-          <button className="btn-secondary" onClick={() => handleOpenFile('left')}>
-            <FolderOpen size={14} /> {t.toolbar.openLeft}
-          </button>
-          <div className="file-pane-info" title={leftFile.path || leftFile.name}>
-            <FileText size={14} color="#60a5fa" />
-            <span className="file-name-text">{leftFile.name}</span>
-            {leftFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
-            {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
+        </div>
+
+        {activeTab?.type === 'folder' ? (
+          <div className="toolbar-group" style={{ flex: 1, justifyContent: 'flex-start' }}>
+            <button
+              className="btn-secondary"
+              onClick={handleExecuteFolderCompare}
+              disabled={isScanning || (!leftDirHandle && !leftFallbackFiles) || (!rightDirHandle && !rightFallbackFiles)}
+              title={t.folderTable.rescan}
+            >
+              <RefreshCw size={14} className={isScanning ? 'spin' : ''} /> {t.folderTable.rescan}
+            </button>
+            <div className="file-pane-info">
+              <FolderTree size={14} color="#60a5fa" />
+              <button
+                style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
+                onClick={() => handleOpenFolder('left')}
+                title={t.toolbar.openLeft}
+              >
+                {leftFolderName || 'Left Folder'}
+              </button>
+              <span style={{ color: '#94a3b8', margin: '0 4px' }}>↔</span>
+              <button
+                style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
+                onClick={() => handleOpenFolder('right')}
+                title={t.toolbar.openRight}
+              >
+                {rightFolderName || 'Right Folder'}
+              </button>
+            </div>
+            <button
+              className="btn-secondary"
+              onClick={handleResetFolderCompare}
+              title="Reset"
+              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+            >
+              Reset
+            </button>
           </div>
-          <button
-            className="btn-success"
-            onClick={() => handleSave('left')}
-            disabled={leftFile.readOnly}
-            title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
-          >
-            <Save size={14} /> {t.toolbar.saveLeft}
-          </button>
-        </div>
+        ) : (
+          <>
+            {/* Left File Controls */}
+            <div className="toolbar-group">
+              <button className="btn-secondary" onClick={() => handleOpenFile('left')}>
+                <FolderOpen size={14} /> {t.toolbar.openLeft}
+              </button>
+              <div className="file-pane-info" title={leftFile.path || leftFile.name}>
+                <FileText size={14} color="#60a5fa" />
+                <span className="file-name-text">{leftFile.name}</span>
+                {leftFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
+                {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
+              </div>
+              <button
+                className="btn-success"
+                onClick={() => handleSave('left')}
+                disabled={leftFile.readOnly}
+                title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
+              >
+                <Save size={14} /> {t.toolbar.saveLeft}
+              </button>
+            </div>
 
-        {/* Merge Actions */}
-        <div className="toolbar-group">
-          <button
-            className="btn-secondary"
-            onClick={() => handleMerge('rightToLeft')}
-            title={t.toolbar.mergeToLeftTitle}
-          >
-            <ArrowLeft size={14} /> {t.toolbar.mergeToLeft}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => handleMerge('leftToRight')}
-            title={t.toolbar.mergeToRightTitle}
-          >
-            {t.toolbar.mergeToRight} <ArrowRight size={14} />
-          </button>
-        </div>
+            {/* Merge Actions */}
+            <div className="toolbar-group">
+              <button
+                className="btn-secondary"
+                onClick={() => handleMerge('rightToLeft')}
+                title={t.toolbar.mergeToLeftTitle}
+              >
+                <ArrowLeft size={14} /> {t.toolbar.mergeToLeft}
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => handleMerge('leftToRight')}
+                title={t.toolbar.mergeToRightTitle}
+              >
+                {t.toolbar.mergeToRight} <ArrowRight size={14} />
+              </button>
+            </div>
 
-        {/* Diff Navigation */}
-        <div className="toolbar-group">
-          <button
-            className="btn-secondary"
-            onClick={handlePrevDiff}
-            title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
-          >
-            <ChevronUp size={14} /> {t.toolbar.prevDiff}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={handleNextDiff}
-            title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
-          >
-            {t.toolbar.nextDiff} <ChevronDown size={14} />
-          </button>
-        </div>
+            {/* Diff Navigation */}
+            <div className="toolbar-group">
+              <button
+                className="btn-secondary"
+                onClick={handlePrevDiff}
+                title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
+              >
+                <ChevronUp size={14} /> {t.toolbar.prevDiff}
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={handleNextDiff}
+                title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
+              >
+                {t.toolbar.nextDiff} <ChevronDown size={14} />
+              </button>
+            </div>
 
-        {/* Right File Controls */}
-        <div className="toolbar-group">
-          <button
-            className="btn-success"
-            onClick={() => handleSave('right')}
-            disabled={rightFile.readOnly}
-            title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
-          >
-            <Save size={14} /> {t.toolbar.saveRight}
-          </button>
-          <div className="file-pane-info" title={rightFile.path || rightFile.name}>
-            <FileText size={14} color="#38bdf8" />
-            <span className="file-name-text">{rightFile.name}</span>
-            {rightFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
-            {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
-          </div>
-          <button className="btn-secondary" onClick={() => handleOpenFile('right')}>
-            <FolderOpen size={14} /> {t.toolbar.openRight}
-          </button>
-        </div>
+            {/* Right File Controls */}
+            <div className="toolbar-group">
+              <button
+                className="btn-success"
+                onClick={() => handleSave('right')}
+                disabled={rightFile.readOnly}
+                title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
+              >
+                <Save size={14} /> {t.toolbar.saveRight}
+              </button>
+              <div className="file-pane-info" title={rightFile.path || rightFile.name}>
+                <FileText size={14} color="#38bdf8" />
+                <span className="file-name-text">{rightFile.name}</span>
+                {rightFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
+                {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
+              </div>
+              <button className="btn-secondary" onClick={() => handleOpenFile('right')}>
+                <FolderOpen size={14} /> {t.toolbar.openRight}
+              </button>
+            </div>
 
-        {/* Comparison Options */}
-        <div className="toolbar-group">
-          <button
-            className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
-            onClick={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
-            title={t.toolbar.ignoreWhitespace}
-          >
-            {t.toolbar.ignoreWhitespace}: {ignoreTrimWhitespace ? t.toolbar.on : t.toolbar.off}
-          </button>
-          <button
-            className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
-            onClick={() =>
-              setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
-            }
-            title={t.toolbar.ignoreLineEndings}
-          >
-            {t.toolbar.ignoreLineEndings}: {normalizeOptions.ignoreLineEndings ? t.toolbar.on : t.toolbar.off}
-          </button>
-          <button
-            className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
-            onClick={() => setRenderSideBySide(!renderSideBySide)}
-            title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
-          >
-            {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
-            {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
-          </button>
-        </div>
+            {/* Comparison Options */}
+            <div className="toolbar-group">
+              <button
+                className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
+                onClick={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
+                title={t.toolbar.ignoreWhitespace}
+              >
+                {t.toolbar.ignoreWhitespace}: {ignoreTrimWhitespace ? t.toolbar.on : t.toolbar.off}
+              </button>
+              <button
+                className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
+                onClick={() =>
+                  setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
+                }
+                title={t.toolbar.ignoreLineEndings}
+              >
+                {t.toolbar.ignoreLineEndings}: {normalizeOptions.ignoreLineEndings ? t.toolbar.on : t.toolbar.off}
+              </button>
+              <button
+                className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
+                onClick={() => setRenderSideBySide(!renderSideBySide)}
+                title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
+              >
+                {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
+                {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
+              </button>
+            </div>
 
-        {/* Export Actions */}
-        <div className="toolbar-group">
-          <button
-            className="btn-secondary"
-            onClick={handleExportHtmlReport}
-            title={t.toolbar.exportTitle}
-          >
-            <FileCode size={14} /> {t.toolbar.exportReport}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={handleExportPatch}
-            title={t.toolbar.exportTitle}
-          >
-            <Download size={14} /> {t.toolbar.exportPatch}
-          </button>
-        </div>
+            {/* Export Actions */}
+            <div className="toolbar-group">
+              <button
+                className="btn-secondary"
+                onClick={handleExportHtmlReport}
+                title={t.toolbar.exportTitle}
+              >
+                <FileCode size={14} /> {t.toolbar.exportReport}
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={handleExportPatch}
+                title={t.toolbar.exportTitle}
+              >
+                <Download size={14} /> {t.toolbar.exportPatch}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Editor & Folder Panel */}
-      <main className="editor-main">
-        {showFolderPanel && (
-          <FolderDiffPanel
-            leftFolderName={leftFolderName}
-            rightFolderName={rightFolderName}
-            diffItems={diffResult.items}
-            summary={diffResult.summary}
-            selectedPath={selectedPath}
-            isScanning={isScanning}
-            scanProgressText={scanProgressText}
-            canCompare={Boolean(
-              (leftDirHandle || (leftFallbackFiles && leftFallbackFiles.length > 0)) &&
-              (rightDirHandle || (rightFallbackFiles && rightFallbackFiles.length > 0))
+      {/* MDI Tab Bar */}
+      <TabBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onSelectTab={handleSelectTab}
+        onCloseTab={handleCloseTab}
+        onNewCompare={() => setIsOpenDialogOpen(true)}
+      />
+
+      {/* Workspace Area: Folder Diff Table vs File Diff Editor */}
+      {activeTab?.type === 'folder' ? (
+        <FolderDiffTableView
+          leftFolderName={leftFolderName}
+          rightFolderName={rightFolderName}
+          diffItems={diffResult.items}
+          summary={diffResult.summary}
+          isScanning={isScanning}
+          scanProgressText={scanProgressText}
+          onRescan={handleExecuteFolderCompare}
+          onOpenFileDiff={handleOpenFileDiffFromTable}
+        />
+      ) : (
+        <main className="editor-main">
+          {/* Left Drop Zone */}
+          <div
+            className={`drop-side ${dragSide === 'left' ? 'dragover' : ''}`}
+            style={{ display: dragSide === 'left' ? 'flex' : 'none', position: 'absolute', left: 0, width: '50%', height: '80%', zIndex: 50 }}
+            onDragOver={(e) => handleDragOver(e, 'left')}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, 'left')}
+          >
+            <FolderOpen size={48} color="#60a5fa" />
+            <h3>{t.dropzone.dropLeft}</h3>
+          </div>
+
+          {/* Right Drop Zone */}
+          <div
+            className={`drop-side ${dragSide === 'right' ? 'dragover' : ''}`}
+            style={{ display: dragSide === 'right' ? 'flex' : 'none', position: 'absolute', right: 0, width: '50%', height: '80%', zIndex: 50 }}
+            onDragOver={(e) => handleDragOver(e, 'right')}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, 'right')}
+          >
+            <FolderOpen size={48} color="#38bdf8" />
+            <h3>{t.dropzone.dropRight}</h3>
+          </div>
+
+          <div
+            className="diff-wrapper"
+            onDragOver={(e) => {
+              e.preventDefault();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              if (x < rect.width / 2) {
+                setDragSide('left');
+              } else {
+                setDragSide('right');
+              }
+            }}
+          >
+            {isImageFileName(leftFile.name) || isImageFileName(rightFile.name) ? (
+              <ImageDiffViewer
+                leftName={leftFile.name}
+                leftSrc={leftFile.imageUrl}
+                leftSize={leftFile.size}
+                rightName={rightFile.name}
+                rightSrc={rightFile.imageUrl}
+                rightSize={rightFile.size}
+              />
+            ) : (
+              <DiffEditor
+                height="100%"
+                language={language}
+                original={leftFile.content}
+                modified={rightFile.content}
+                beforeMount={handleEditorBeforeMount}
+                onMount={handleEditorDidMount}
+                theme="vs-dark"
+                options={{
+                  readOnly: rightFile.readOnly ?? false,
+                  originalEditable: !(leftFile.readOnly ?? false),
+                  renderSideBySide,
+                  ignoreTrimWhitespace,
+                  automaticLayout: true,
+                  fontSize: 13,
+                  fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
+                  minimap: { enabled: true },
+                  scrollBeyondLastLine: false,
+                  diffCodeLens: true,
+                  contextmenu: false,
+                }}
+              />
             )}
-            onOpenLeftFolder={() => handleOpenFolder('left')}
-            onOpenRightFolder={() => handleOpenFolder('right')}
-            onCompareFolders={handleExecuteFolderCompare}
-            onResetFolders={handleResetFolderCompare}
-            onSelectFile={handleSelectDiffItem}
-          />
-        )}
+          </div>
+        </main>
+      )}
 
-        {/* Left Drop Zone */}
-        <div
-          className={`drop-side ${dragSide === 'left' ? 'dragover' : ''}`}
-          style={{ display: dragSide === 'left' ? 'flex' : 'none', position: 'absolute', left: showFolderPanel ? 380 : 0, width: '40%', height: '80%', zIndex: 50 }}
-          onDragOver={(e) => handleDragOver(e, 'left')}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, 'left')}
-        >
-          <FolderOpen size={48} color="#60a5fa" />
-          <h3>{t.dropzone.dropLeft}</h3>
-        </div>
+      {/* File Diff Status Bar */}
+      {activeTab?.type === 'file' && (
+        <footer className="app-statusbar">
+          <div className="statusbar-group">
+            <span className="statusbar-item">
+              {t.statusbar.path} <strong>{leftFile.path || leftFile.name}</strong>
+            </span>
+            <span className="statusbar-item">
+              {t.statusbar.language} <strong>{language}</strong>
+            </span>
+            <span className="statusbar-item">
+              {t.statusbar.encoding}{' '}
+              <strong>
+                {leftFile.encoding && rightFile.encoding && leftFile.encoding !== rightFile.encoding
+                  ? `L:${formatEncodingLabel(leftFile.encoding)} | R:${formatEncodingLabel(rightFile.encoding)}`
+                  : formatEncodingLabel(leftFile.encoding || rightFile.encoding)}
+              </strong>
+            </span>
+            <span className="statusbar-item">
+              {t.statusbar.directSave} <strong>{isFileSystemAccessSupported() ? t.statusbar.enabled : t.statusbar.fallback}</strong>
+            </span>
+          </div>
 
-        {/* Right Drop Zone */}
-        <div
-          className={`drop-side ${dragSide === 'right' ? 'dragover' : ''}`}
-          style={{ display: dragSide === 'right' ? 'flex' : 'none', position: 'absolute', right: 0, width: '40%', height: '80%', zIndex: 50 }}
-          onDragOver={(e) => handleDragOver(e, 'right')}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, 'right')}
-        >
-          <FolderOpen size={48} color="#38bdf8" />
-          <h3>{t.dropzone.dropRight}</h3>
-        </div>
-
-        <div
-          className="diff-wrapper"
-          onDragOver={(e) => {
-            e.preventDefault();
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            if (x < rect.width / 2) {
-              setDragSide('left');
-            } else {
-              setDragSide('right');
-            }
-          }}
-        >
-          {isImageFileName(leftFile.name) || isImageFileName(rightFile.name) ? (
-            <ImageDiffViewer
-              leftName={leftFile.name}
-              leftSrc={leftFile.imageUrl}
-              leftSize={leftFile.size}
-              rightName={rightFile.name}
-              rightSrc={rightFile.imageUrl}
-              rightSize={rightFile.size}
-            />
-          ) : (
-            <DiffEditor
-              height="100%"
-              language={language}
-              original={leftFile.content}
-              modified={rightFile.content}
-              beforeMount={handleEditorBeforeMount}
-              onMount={handleEditorDidMount}
-              theme="vs-dark"
-              options={{
-                readOnly: rightFile.readOnly ?? false,
-                originalEditable: !(leftFile.readOnly ?? false),
-                renderSideBySide,
-                ignoreTrimWhitespace,
-                automaticLayout: true,
-                fontSize: 13,
-                fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
-                minimap: { enabled: true },
-                scrollBeyondLastLine: false,
-                diffCodeLens: true,
-                contextmenu: false,
-              }}
-            />
-          )}
-        </div>
-      </main>
-
-      {/* Status Bar */}
-      <footer className="app-statusbar">
-        <div className="statusbar-group">
-          <span className="statusbar-item">
-            {t.statusbar.path} <strong>{leftFile.path || leftFile.name}</strong>
-          </span>
-          <span className="statusbar-item">
-            {t.statusbar.language} <strong>{language}</strong>
-          </span>
-          <span className="statusbar-item">
-            {t.statusbar.encoding}{' '}
-            <strong>
-              {leftFile.encoding && rightFile.encoding && leftFile.encoding !== rightFile.encoding
-                ? `L:${formatEncodingLabel(leftFile.encoding)} | R:${formatEncodingLabel(rightFile.encoding)}`
-                : formatEncodingLabel(leftFile.encoding || rightFile.encoding)}
-            </strong>
-          </span>
-          <span className="statusbar-item">
-            {t.statusbar.directSave} <strong>{isFileSystemAccessSupported() ? t.statusbar.enabled : t.statusbar.fallback}</strong>
-          </span>
-        </div>
-
-        <div className="statusbar-group">
-          <span className="statusbar-item">
-            {t.statusbar.left} {leftFile.content.split('\n').length} {t.statusbar.lines} ({leftFile.size} {t.statusbar.bytes})
-          </span>
-          <span className="statusbar-item">
-            {t.statusbar.right} {rightFile.content.split('\n').length} {t.statusbar.lines} ({rightFile.size} {t.statusbar.bytes})
-          </span>
-        </div>
-      </footer>
+          <div className="statusbar-group">
+            <span className="statusbar-item">
+              {t.statusbar.left} {leftFile.content.split('\n').length} {t.statusbar.lines} ({leftFile.size} {t.statusbar.bytes})
+            </span>
+            <span className="statusbar-item">
+              {t.statusbar.right} {rightFile.content.split('\n').length} {t.statusbar.lines} ({rightFile.size} {t.statusbar.bytes})
+            </span>
+          </div>
+        </footer>
+      )}
 
       {/* Custom WinMerge-style Context Menu */}
       {contextMenu.visible && (

@@ -1,0 +1,119 @@
+/* WinMerge-style Tab Bar Styles */
+
+.webmerge-tab-bar {
+  display: flex;
+  align-items: center;
+  background-color: #1e1e22;
+  border-bottom: 1px solid var(--border-subtle);
+  height: 35px;
+  min-height: 35px;
+  user-select: none;
+  overflow: hidden;
+  padding: 0 4px;
+}
+
+.tab-scroll-container {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 100%;
+}
+
+.tab-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.webmerge-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px;
+  background-color: #26262b;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  max-width: 260px;
+  position: relative;
+  transition: all 0.15s ease;
+  border-top: 2px solid transparent;
+}
+
+.webmerge-tab:hover {
+  background-color: #2e2e34;
+  color: var(--text-secondary);
+}
+
+.webmerge-tab.active {
+  background-color: var(--bg-primary);
+  color: #ffffff;
+  font-weight: 500;
+  border-top-color: #3b82f6;
+  border-bottom: 1px solid var(--bg-primary);
+}
+
+.tab-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-dirty-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.tab-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin-left: 2px;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.1s ease;
+  flex-shrink: 0;
+}
+
+.tab-close-btn:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  opacity: 1;
+}
+
+.tab-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tab-new-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
