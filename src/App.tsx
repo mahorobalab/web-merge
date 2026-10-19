@@ -34,6 +34,7 @@ import { FileDiffWorkspace } from './components/FileDiffWorkspace';
 import { AppStatusBar } from './components/AppStatusBar';
 import { DiffContextMenu } from './components/DiffContextMenu';
 import { OpenDialog } from './components/OpenDialog';
+import { EmptyWorkspace } from './components/EmptyWorkspace';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './App.css';
 
@@ -118,7 +119,6 @@ export const App: React.FC = () => {
         id: 'demo-file',
         type: 'file',
         title: 'left_sample.ts ↔ right_sample.ts',
-        canClose: false,
       },
     ],
     initialActiveTabId: 'demo-file',
@@ -207,6 +207,7 @@ export const App: React.FC = () => {
     onPrevDiff: handlePrevDiff,
     onCopyChunkToRight: handleCopyChunkToRight,
     onCopyChunkToLeft: handleCopyChunkToLeft,
+    onCloseActiveTab: () => activeTabId && handleCloseTab(activeTabId),
   });
 
   // Automatic syntax detection
@@ -371,7 +372,6 @@ export const App: React.FC = () => {
         id: folderTabId,
         type: 'folder',
         title: `${leftFolderName || 'Left'} ↔ ${rightFolderName || 'Right'}`,
-        canClose: false,
       };
 
       setTabs((prev) => {
@@ -605,7 +605,6 @@ export const App: React.FC = () => {
       id: folderTabId,
       type: 'folder',
       title: `${left.name} ↔ ${right.name}`,
-      canClose: false,
     };
 
     setTabs((prev) => {
@@ -787,7 +786,6 @@ export const App: React.FC = () => {
           id: folderTabId,
           type: 'folder',
           title: 'freelandre1 ↔ freelandre2',
-          canClose: false,
         };
         setTabs((prev) => {
           const exists = prev.some((t) => t.id === folderTabId);
@@ -838,6 +836,7 @@ export const App: React.FC = () => {
 
       {/* Header */}
       <AppHeader
+        hasActiveTab={Boolean(activeTab)}
         isFolderTab={activeTab?.type === 'folder'}
         folderDiffCount={folderDiffCount}
         isFileMatch={isMatch}
@@ -847,6 +846,7 @@ export const App: React.FC = () => {
 
       {/* Toolbar */}
       <AppToolbar
+        hasActiveTab={Boolean(activeTab)}
         isFolderTab={activeTab?.type === 'folder'}
         onOpenNewCompare={() => setIsOpenDialogOpen(true)}
         leftFolderName={leftFolderName}
@@ -888,8 +888,13 @@ export const App: React.FC = () => {
         onNewCompare={() => setIsOpenDialogOpen(true)}
       />
 
-      {/* Workspace Area: Folder Diff Table vs File Diff Editor */}
-      {activeTab?.type === 'folder' ? (
+      {/* Workspace Area: Folder Diff Table vs File Diff Editor vs Empty Workspace */}
+      {tabs.length === 0 ? (
+        <EmptyWorkspace
+          onOpenCompare={() => setIsOpenDialogOpen(true)}
+          onLoadDemo={() => (window as any).__loadSampleFolderCompare?.()}
+        />
+      ) : activeTab?.type === 'folder' ? (
         <FolderDiffTableView
           leftFolderName={leftFolderName}
           rightFolderName={rightFolderName}

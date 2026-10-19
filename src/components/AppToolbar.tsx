@@ -20,6 +20,7 @@ import type { NormalizeOptions } from '../utils/textNormalizer';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface AppToolbarProps {
+  hasActiveTab?: boolean;
   isFolderTab: boolean;
   onOpenNewCompare: () => void;
 
@@ -52,6 +53,7 @@ export interface AppToolbarProps {
 }
 
 export const AppToolbar: React.FC<AppToolbarProps> = ({
+  hasActiveTab = true,
   isFolderTab,
   onOpenNewCompare,
 
@@ -96,7 +98,8 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         </button>
       </div>
 
-      {isFolderTab ? (
+      {hasActiveTab && (
+        isFolderTab ? (
         <div className="toolbar-group" style={{ flex: 1, justifyContent: 'flex-start' }}>
           <button
             className="btn-secondary"
@@ -268,7 +271,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             </div>
           </>
         )
-      )}
+      ))}
     </div>
   );
 };

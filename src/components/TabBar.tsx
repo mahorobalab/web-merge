@@ -35,11 +35,20 @@ export const TabBar: React.FC<TabBarProps> = ({
       <div className="tab-scroll-container">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
+          const isDirty = Boolean(tab.isDirty);
           return (
             <div
               key={tab.id}
-              className={`webmerge-tab ${isActive ? 'active' : ''}`}
+              className={`webmerge-tab ${isActive ? 'active' : ''} ${isDirty ? 'is-dirty' : ''}`}
               onClick={() => onSelectTab(tab.id)}
+              onAuxClick={(e) => {
+                // Middle click closes tab
+                if (e.button === 1 && tab.canClose !== false) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onCloseTab(tab.id);
+                }
+              }}
               title={tab.title}
             >
               <span className="tab-icon">
@@ -52,21 +61,23 @@ export const TabBar: React.FC<TabBarProps> = ({
 
               <span className="tab-title">{tab.title}</span>
 
-              {tab.isDirty && <span className="tab-dirty-indicator" title="Unsaved changes" />}
+              <div className="tab-actions">
+                {isDirty && <span className="tab-dirty-indicator" title="Unsaved changes" />}
 
-              {tab.canClose !== false && (
-                <button
-                  type="button"
-                  className="tab-close-btn"
-                  title={t.tabs.close}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCloseTab(tab.id);
-                  }}
-                >
-                  <X size={12} />
-                </button>
-              )}
+                {tab.canClose !== false && (
+                  <button
+                    type="button"
+                    className="tab-close-btn"
+                    title={t.tabs.close}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseTab(tab.id);
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

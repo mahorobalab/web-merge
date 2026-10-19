@@ -60,25 +60,39 @@ export function useTabs({
   // Tab close handler
   const handleCloseTab = useCallback(
     (tabId: string) => {
+      const tabToClose = tabs.find((t) => t.id === tabId);
+      if (tabToClose?.isDirty) {
+        const confirmMsg = `"${tabToClose.title}" には未保存の変更があります。保存せずに閉じますか？\n(There are unsaved changes. Are you sure you want to close this tab?)`;
+        if (!window.confirm(confirmMsg)) {
+          return;
+        }
+      }
+
       setTabs((prev) => {
+        const closedIndex = prev.findIndex((t) => t.id === tabId);
         const filtered = prev.filter((t) => t.id !== tabId);
+
         if (activeTabId === tabId) {
-          // Switch to folder-diff tab if available, else first remaining tab
-          const folderTab = filtered.find((t) => t.id === 'folder-diff');
-          const nextActive = folderTab ? folderTab.id : (filtered[0]?.id || '');
-          if (nextActive) {
-            const target = filtered.find((t) => t.id === nextActive);
-            if (target && target.type === 'file') {
-              if (target.leftFile) setLeftFile(target.leftFile);
-              if (target.rightFile) setRightFile(target.rightFile);
+          if (filtered.length === 0) {
+            setActiveTabId('');
+            return filtered;
+          }
+
+          // Switch to adjacent tab (same index or previous)
+          const nextIndex = Math.max(0, Math.min(closedIndex, filtered.length - 1));
+          const nextTab = filtered[nextIndex];
+          if (nextTab) {
+            if (nextTab.type === 'file') {
+              if (nextTab.leftFile) setLeftFile(nextTab.leftFile);
+              if (nextTab.rightFile) setRightFile(nextTab.rightFile);
             }
-            setActiveTabId(nextActive);
+            setActiveTabId(nextTab.id);
           }
         }
         return filtered;
       });
     },
-    [activeTabId, setLeftFile, setRightFile]
+    [tabs, activeTabId, setLeftFile, setRightFile]
   );
 
   // Mark active tab dirty when editor content changes

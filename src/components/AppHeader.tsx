@@ -3,6 +3,7 @@ import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Languages } fro
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface AppHeaderProps {
+  hasActiveTab?: boolean;
   isFolderTab: boolean;
   folderDiffCount: number;
   isFileMatch: boolean;
@@ -11,6 +12,7 @@ export interface AppHeaderProps {
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
+  hasActiveTab = true,
   isFolderTab,
   folderDiffCount,
   isFileMatch,
@@ -35,9 +37,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <span>{t.app.zeroServer}</span>
         </div>
 
-        <div className="stat-item">
-          {isFolderTab ? (
-            folderDiffCount === 0 ? (
+        {hasActiveTab && (
+          <div className="stat-item">
+            {isFolderTab ? (
+              folderDiffCount === 0 ? (
+                <span className="stat-diff-tag equal">
+                  <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  {t.app.noDiff}
+                </span>
+              ) : (
+                <span className="stat-diff-tag different">
+                  <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  {folderDiffCount} {t.app.hasDiff}
+                </span>
+              )
+            ) : isFileMatch ? (
               <span className="stat-diff-tag equal">
                 <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
                 {t.app.noDiff}
@@ -45,21 +59,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             ) : (
               <span className="stat-diff-tag different">
                 <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
-                {folderDiffCount} {t.app.hasDiff}
+                {t.app.hasDiff}
               </span>
-            )
-          ) : isFileMatch ? (
-            <span className="stat-diff-tag equal">
-              <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-              {t.app.noDiff}
-            </span>
-          ) : (
-            <span className="stat-diff-tag different">
-              <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
-              {t.app.hasDiff}
-            </span>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Language Toggle */}
         <button

@@ -67,34 +67,77 @@
   white-space: nowrap;
 }
 
+/* Tab actions container for dirty indicator & close button */
+.tab-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
 .tab-dirty-indicator {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background-color: #f59e0b;
   flex-shrink: 0;
+  transition: opacity 0.15s ease;
 }
 
 .tab-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
-  margin-left: 2px;
-  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-muted);
   border: none;
   cursor: pointer;
-  opacity: 0.7;
-  transition: all 0.1s ease;
+  opacity: 0;
+  transition: all 0.15s ease;
   flex-shrink: 0;
+  position: absolute;
 }
 
+/* Active tab: close button is always subtly visible */
+.webmerge-tab.active .tab-close-btn {
+  opacity: 0.65;
+}
+
+/* Hovering any tab: close button becomes clearly visible */
+.webmerge-tab:hover .tab-close-btn {
+  opacity: 0.85;
+}
+
+/* Hovering the close button itself: clear red feedback */
 .tab-close-btn:hover {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.25);
+  color: #ef4444 !important;
+  opacity: 1 !important;
+}
+
+/* When dirty and not hovered: show dirty dot, hide close button */
+.webmerge-tab.is-dirty:not(:hover) .tab-dirty-indicator {
   opacity: 1;
+}
+.webmerge-tab.is-dirty:not(:hover) .tab-close-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* When dirty and hovered: hide dirty dot, reveal close button */
+.webmerge-tab.is-dirty:hover .tab-dirty-indicator {
+  opacity: 0;
+}
+.webmerge-tab.is-dirty:hover .tab-close-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tab-new-btn {

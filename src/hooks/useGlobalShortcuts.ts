@@ -11,6 +11,7 @@ interface UseGlobalShortcutsOptions {
   onPrevDiff: () => void;
   onCopyChunkToRight: () => void;
   onCopyChunkToLeft: () => void;
+  onCloseActiveTab?: () => void;
 }
 
 export function useGlobalShortcuts({
@@ -23,9 +24,20 @@ export function useGlobalShortcuts({
   onPrevDiff,
   onCopyChunkToRight,
   onCopyChunkToLeft,
+  onCloseActiveTab,
 }: UseGlobalShortcutsOptions) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+W / Ctrl+F4: Close active tab
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W')) ||
+        (e.ctrlKey && e.key === 'F4')
+      ) {
+        e.preventDefault();
+        onCloseActiveTab?.();
+        return;
+      }
+
       // Ctrl+O / Ctrl+N: Open comparison dialog
       if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O' || e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
@@ -95,5 +107,6 @@ export function useGlobalShortcuts({
     onPrevDiff,
     onCopyChunkToRight,
     onCopyChunkToLeft,
+    onCloseActiveTab,
   ]);
 }
