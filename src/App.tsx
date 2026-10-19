@@ -22,11 +22,13 @@ import {
 import {
   openFileWithPicker,
   readFileObject,
+  readTextFromHandle,
   saveFileWithHandle,
   downloadFileContent,
   isFileSystemAccessSupported,
 } from './core/fileStorage';
 import type { OpenedFile } from './core/fileStorage';
+import { formatEncodingLabel, type SupportedEncoding } from './utils/encodingDetector';
 import { openDirectoryWithPicker, parseFileList } from './core/directoryScanner';
 import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
@@ -40,6 +42,7 @@ interface FileState {
   name: string;
   path?: string;
   content: string;
+  encoding?: SupportedEncoding;
   handle?: FileSystemFileHandle;
   lastModified?: number;
   isDirty: boolean;
@@ -92,6 +95,7 @@ export const App: React.FC = () => {
   const [leftFile, setLeftFile] = useState<FileState>({
     name: 'left_sample.ts',
     content: DEFAULT_LEFT_DEMO,
+    encoding: 'utf-8',
     isDirty: false,
     size: DEFAULT_LEFT_DEMO.length,
   });
@@ -99,6 +103,7 @@ export const App: React.FC = () => {
   const [rightFile, setRightFile] = useState<FileState>({
     name: 'right_sample.ts',
     content: DEFAULT_RIGHT_DEMO,
+    encoding: 'utf-8',
     isDirty: false,
     size: DEFAULT_RIGHT_DEMO.length,
   });
@@ -236,6 +241,7 @@ export const App: React.FC = () => {
     const nextState: FileState = {
       name: opened.name,
       content: opened.content,
+      encoding: opened.encoding,
       handle: opened.handle,
       lastModified: opened.lastModified,
       isDirty: false,
@@ -315,11 +321,13 @@ export const App: React.FC = () => {
 
     try {
       let leftContent = '';
+      let leftEncoding: SupportedEncoding = 'utf-8';
       let leftHandle: FileSystemFileHandle | undefined;
       let leftModified = 0;
       let leftSize = 0;
 
       let rightContent = '';
+      let rightEncoding: SupportedEncoding = 'utf-8';
       let rightHandle: FileSystemFileHandle | undefined;
       let rightModified = 0;
       let rightSize = 0;
@@ -330,8 +338,9 @@ export const App: React.FC = () => {
         leftModified = item.left.lastModified;
         leftSize = item.left.size;
         if (item.left.handle) {
-          const f = await item.left.handle.getFile();
-          leftContent = await f.text();
+          const res = await readTextFromHandle(item.left.handle);
+          leftContent = res.text;
+          leftEncoding = res.encoding;
         }
       }
 
@@ -341,8 +350,9 @@ export const App: React.FC = () => {
         rightModified = item.right.lastModified;
         rightSize = item.right.size;
         if (item.right.handle) {
-          const f = await item.right.handle.getFile();
-          rightContent = await f.text();
+          const res = await readTextFromHandle(item.right.handle);
+          rightContent = res.text;
+          rightEncoding = res.encoding;
         }
       }
 
@@ -350,6 +360,7 @@ export const App: React.FC = () => {
         name: item.left?.name || item.name,
         path: item.path,
         content: leftContent,
+        encoding: leftEncoding,
         handle: leftHandle,
         lastModified: leftModified,
         isDirty: false,
@@ -360,6 +371,7 @@ export const App: React.FC = () => {
         name: item.right?.name || item.name,
         path: item.path,
         content: rightContent,
+        encoding: rightEncoding,
         handle: rightHandle,
         lastModified: rightModified,
         isDirty: false,
@@ -790,7 +802,12 @@ export const App: React.FC = () => {
             {t.statusbar.language} <strong>{language}</strong>
           </span>
           <span className="statusbar-item">
-            {t.statusbar.encoding} <strong>UTF-8</strong>
+            {t.statusbar.encoding}{' '}
+            <strong>
+              {leftFile.encoding && rightFile.encoding && leftFile.encoding !== rightFile.encoding
+                ? `L:${formatEncodingLabel(leftFile.encoding)} | R:${formatEncodingLabel(rightFile.encoding)}`
+                : formatEncodingLabel(leftFile.encoding || rightFile.encoding)}
+            </strong>
           </span>
           <span className="statusbar-item">
             {t.statusbar.directSave} <strong>{isFileSystemAccessSupported() ? t.statusbar.enabled : t.statusbar.fallback}</strong>

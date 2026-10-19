@@ -1,6 +1,9 @@
+import { decodeBuffer, type SupportedEncoding } from '../utils/encodingDetector';
+
 export interface OpenedFile {
   name: string;
   content: string;
+  encoding: SupportedEncoding;
   handle?: FileSystemFileHandle;
   lastModified: number;
   size: number;
@@ -14,7 +17,7 @@ export function isFileSystemAccessSupported(): boolean {
 }
 
 /**
- * Opens the native file picker to read a local file.
+ * Opens the native file picker to read a local file with auto character encoding detection.
  */
 export async function openFileWithPicker(): Promise<OpenedFile | null> {
   if (!isFileSystemAccessSupported()) {
@@ -26,11 +29,13 @@ export async function openFileWithPicker(): Promise<OpenedFile | null> {
       multiple: false,
     });
     const file = await handle.getFile();
-    const content = await file.text();
+    const buffer = await file.arrayBuffer();
+    const { text: content, encoding } = decodeBuffer(buffer);
 
     return {
       name: file.name,
       content,
+      encoding,
       handle,
       lastModified: file.lastModified,
       size: file.size,
@@ -44,17 +49,29 @@ export async function openFileWithPicker(): Promise<OpenedFile | null> {
 }
 
 /**
- * Creates an OpenedFile object from a File instance (e.g. from Drag & Drop or input element).
+ * Creates an OpenedFile object from a File instance with auto character encoding detection.
  */
 export async function readFileObject(file: File, handle?: FileSystemFileHandle): Promise<OpenedFile> {
-  const content = await file.text();
+  const buffer = await file.arrayBuffer();
+  const { text: content, encoding } = decodeBuffer(buffer);
+
   return {
     name: file.name,
     content,
+    encoding,
     handle,
     lastModified: file.lastModified,
     size: file.size,
   };
+}
+
+/**
+ * Reads text content and encoding from a FileSystemFileHandle.
+ */
+export async function readTextFromHandle(handle: FileSystemFileHandle): Promise<{ text: string; encoding: SupportedEncoding }> {
+  const file = await handle.getFile();
+  const buffer = await file.arrayBuffer();
+  return decodeBuffer(buffer);
 }
 
 /**
