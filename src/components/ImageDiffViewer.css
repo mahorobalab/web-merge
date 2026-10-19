@@ -1,0 +1,240 @@
+.image-diff-viewer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #18181b;
+  overflow: hidden;
+  user-select: none;
+}
+
+.image-diff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #202023;
+  border-bottom: 1px solid #333338;
+  gap: 16px;
+}
+
+.image-diff-mode-group {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2a2e;
+  border: 1px solid #3e3e42;
+  color: #ccc;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-mode:hover {
+  background: #38383e;
+  color: #fff;
+}
+
+.btn-mode.active {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #fff;
+  font-weight: 500;
+}
+
+.slider-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.slider-control input[type='range'] {
+  width: 140px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.image-diff-canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Checkerboard pattern for transparency */
+.checkerboard {
+  background-color: #222;
+  background-image: linear-gradient(45deg, #181818 25%, transparent 25%),
+    linear-gradient(-45deg, #181818 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181818 75%),
+    linear-gradient(-45deg, transparent 75%, #181818 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  border: 1px solid #38383e;
+  border-radius: 6px;
+}
+
+/* Split View */
+.image-diff-split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.image-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e22;
+  border: 1px solid #333338;
+}
+
+.image-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #252528;
+  border-bottom: 1px solid #333338;
+  font-size: 0.8rem;
+}
+
+.image-title.left { color: #60a5fa; font-weight: 600; }
+.image-title.right { color: #38bdf8; font-weight: 600; }
+.image-size { color: #888; font-size: 0.75rem; }
+
+.image-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 16px;
+}
+
+.image-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.no-image {
+  color: #666;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Swipe View */
+.image-diff-swipe-view {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.swipe-img {
+  max-width: 800px;
+  max-height: 600px;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.swipe-right-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.swipe-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #0284c7;
+  cursor: ew-resize;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.handle-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: #38bdf8;
+  transform: translateX(-50%);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+.handle-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #fff;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Onion Skin View */
+.image-diff-onion-view,
+.image-diff-blend-view {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.onion-img,
+.blend-img {
+  max-width: 800px;
+  max-height: 600px;
+  display: block;
+}
+
+.onion-img.right,
+.blend-img.right {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

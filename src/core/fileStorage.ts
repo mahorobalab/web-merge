@@ -1,9 +1,11 @@
 import { decodeBuffer, type SupportedEncoding } from '../utils/encodingDetector';
+import { isImageFileName } from '../utils/imageDetector';
 
 export interface OpenedFile {
   name: string;
   content: string;
   encoding: SupportedEncoding;
+  imageUrl?: string;
   handle?: FileSystemFileHandle;
   lastModified: number;
   size: number;
@@ -29,13 +31,25 @@ export async function openFileWithPicker(): Promise<OpenedFile | null> {
       multiple: false,
     });
     const file = await handle.getFile();
-    const buffer = await file.arrayBuffer();
-    const { text: content, encoding } = decodeBuffer(buffer);
+    const isImg = isImageFileName(file.name);
+    let content = '';
+    let encoding: SupportedEncoding = 'utf-8';
+    let imageUrl: string | undefined;
+
+    if (isImg) {
+      imageUrl = URL.createObjectURL(file);
+    } else {
+      const buffer = await file.arrayBuffer();
+      const decoded = decodeBuffer(buffer);
+      content = decoded.text;
+      encoding = decoded.encoding;
+    }
 
     return {
       name: file.name,
       content,
       encoding,
+      imageUrl,
       handle,
       lastModified: file.lastModified,
       size: file.size,
@@ -52,13 +66,25 @@ export async function openFileWithPicker(): Promise<OpenedFile | null> {
  * Creates an OpenedFile object from a File instance with auto character encoding detection.
  */
 export async function readFileObject(file: File, handle?: FileSystemFileHandle): Promise<OpenedFile> {
-  const buffer = await file.arrayBuffer();
-  const { text: content, encoding } = decodeBuffer(buffer);
+  const isImg = isImageFileName(file.name);
+  let content = '';
+  let encoding: SupportedEncoding = 'utf-8';
+  let imageUrl: string | undefined;
+
+  if (isImg) {
+    imageUrl = URL.createObjectURL(file);
+  } else {
+    const buffer = await file.arrayBuffer();
+    const decoded = decodeBuffer(buffer);
+    content = decoded.text;
+    encoding = decoded.encoding;
+  }
 
   return {
     name: file.name,
     content,
     encoding,
+    imageUrl,
     handle,
     lastModified: file.lastModified,
     size: file.size,
@@ -66,10 +92,19 @@ export async function readFileObject(file: File, handle?: FileSystemFileHandle):
 }
 
 /**
- * Reads text content and encoding from a FileSystemFileHandle.
+ * Reads text content, encoding, or image URL from a FileSystemFileHandle.
  */
-export async function readTextFromHandle(handle: FileSystemFileHandle): Promise<{ text: string; encoding: SupportedEncoding }> {
+export async function readTextFromHandle(
+  handle: FileSystemFileHandle
+): Promise<{ text: string; encoding: SupportedEncoding; imageUrl?: string }> {
   const file = await handle.getFile();
+  if (isImageFileName(file.name)) {
+    return {
+      text: '',
+      encoding: 'utf-8',
+      imageUrl: URL.createObjectURL(file),
+    };
+  }
   const buffer = await file.arrayBuffer();
   return decodeBuffer(buffer);
 }

@@ -36,6 +36,8 @@ import { openDirectoryWithPicker, parseFileList } from './core/directoryScanner'
 import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
 import { FolderDiffPanel } from './components/FolderDiffPanel';
+import { ImageDiffViewer } from './components/ImageDiffViewer';
+import { isImageFileName } from './utils/imageDetector';
 import { detectLanguage } from './utils/languageDetector';
 import { areTextsEqual, type NormalizeOptions } from './utils/textNormalizer';
 import { useTranslation } from './i18n/I18nContext';
@@ -46,6 +48,7 @@ interface FileState {
   path?: string;
   content: string;
   encoding?: SupportedEncoding;
+  imageUrl?: string;
   handle?: FileSystemFileHandle;
   lastModified?: number;
   isDirty: boolean;
@@ -245,6 +248,7 @@ export const App: React.FC = () => {
       name: opened.name,
       content: opened.content,
       encoding: opened.encoding,
+      imageUrl: opened.imageUrl,
       handle: opened.handle,
       lastModified: opened.lastModified,
       isDirty: false,
@@ -325,12 +329,14 @@ export const App: React.FC = () => {
     try {
       let leftContent = '';
       let leftEncoding: SupportedEncoding = 'utf-8';
+      let leftImageUrl: string | undefined;
       let leftHandle: FileSystemFileHandle | undefined;
       let leftModified = 0;
       let leftSize = 0;
 
       let rightContent = '';
       let rightEncoding: SupportedEncoding = 'utf-8';
+      let rightImageUrl: string | undefined;
       let rightHandle: FileSystemFileHandle | undefined;
       let rightModified = 0;
       let rightSize = 0;
@@ -344,6 +350,7 @@ export const App: React.FC = () => {
           const res = await readTextFromHandle(item.left.handle);
           leftContent = res.text;
           leftEncoding = res.encoding;
+          leftImageUrl = res.imageUrl;
         }
       }
 
@@ -356,6 +363,7 @@ export const App: React.FC = () => {
           const res = await readTextFromHandle(item.right.handle);
           rightContent = res.text;
           rightEncoding = res.encoding;
+          rightImageUrl = res.imageUrl;
         }
       }
 
@@ -364,6 +372,7 @@ export const App: React.FC = () => {
         path: item.path,
         content: leftContent,
         encoding: leftEncoding,
+        imageUrl: leftImageUrl,
         handle: leftHandle,
         lastModified: leftModified,
         isDirty: false,
@@ -375,6 +384,7 @@ export const App: React.FC = () => {
         path: item.path,
         content: rightContent,
         encoding: rightEncoding,
+        imageUrl: rightImageUrl,
         handle: rightHandle,
         lastModified: rightModified,
         isDirty: false,
@@ -828,26 +838,37 @@ export const App: React.FC = () => {
             }
           }}
         >
-          <DiffEditor
-            height="100%"
-            language={language}
-            original={leftFile.content}
-            modified={rightFile.content}
-            onMount={handleEditorDidMount}
-            theme="vs-dark"
-            options={{
-              readOnly: false,
-              originalEditable: true,
-              renderSideBySide,
-              ignoreTrimWhitespace,
-              automaticLayout: true,
-              fontSize: 13,
-              fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
-              diffCodeLens: true,
-            }}
-          />
+          {isImageFileName(leftFile.name) || isImageFileName(rightFile.name) ? (
+            <ImageDiffViewer
+              leftName={leftFile.name}
+              leftSrc={leftFile.imageUrl}
+              leftSize={leftFile.size}
+              rightName={rightFile.name}
+              rightSrc={rightFile.imageUrl}
+              rightSize={rightFile.size}
+            />
+          ) : (
+            <DiffEditor
+              height="100%"
+              language={language}
+              original={leftFile.content}
+              modified={rightFile.content}
+              onMount={handleEditorDidMount}
+              theme="vs-dark"
+              options={{
+                readOnly: false,
+                originalEditable: true,
+                renderSideBySide,
+                ignoreTrimWhitespace,
+                automaticLayout: true,
+                fontSize: 13,
+                fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                diffCodeLens: true,
+              }}
+            />
+          )}
         </div>
       </main>
 
