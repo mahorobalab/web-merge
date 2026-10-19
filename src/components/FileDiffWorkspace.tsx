@@ -133,6 +133,7 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
               scrollBeyondLastLine: false,
               diffCodeLens: true,
               contextmenu: false,
+              mouseWheelZoom: true,
             }}
           />
         )}

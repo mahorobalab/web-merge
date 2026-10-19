@@ -23,6 +23,7 @@ export function useDiffEditorMerge({
 }: UseDiffEditorMergeOptions) {
   const { t } = useTranslation();
   const diffEditorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
 
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -309,6 +310,7 @@ export function useDiffEditorMerge({
 
   // Monaco Editor beforeMount config
   const handleEditorBeforeMount: DiffEditorProps['beforeMount'] = (monaco) => {
+    monacoRef.current = monaco;
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: true,
       noSyntaxValidation: false,
@@ -330,6 +332,34 @@ export function useDiffEditorMerge({
 
     const originalEditor = editor.getOriginalEditor();
     const modifiedEditor = editor.getModifiedEditor();
+
+    // Synchronize font size zoom (Ctrl + mouse wheel) between left and right editors
+    const fontSizeOption = monacoRef.current?.editor?.EditorOption?.fontSize ?? 52;
+    let isSyncingFontSize = false;
+
+    originalEditor.onDidChangeConfiguration((e: any) => {
+      if (isSyncingFontSize) return;
+      if (e.hasChanged(fontSizeOption)) {
+        const newSize = originalEditor.getOption(fontSizeOption);
+        if (newSize && modifiedEditor.getOption(fontSizeOption) !== newSize) {
+          isSyncingFontSize = true;
+          modifiedEditor.updateOptions({ fontSize: newSize });
+          isSyncingFontSize = false;
+        }
+      }
+    });
+
+    modifiedEditor.onDidChangeConfiguration((e: any) => {
+      if (isSyncingFontSize) return;
+      if (e.hasChanged(fontSizeOption)) {
+        const newSize = modifiedEditor.getOption(fontSizeOption);
+        if (newSize && originalEditor.getOption(fontSizeOption) !== newSize) {
+          isSyncingFontSize = true;
+          originalEditor.updateOptions({ fontSize: newSize });
+          isSyncingFontSize = false;
+        }
+      }
+    });
 
     originalEditor.onDidChangeModelContent(() => {
       setLeftFile((prev) => ({ ...prev, isDirty: true }));
