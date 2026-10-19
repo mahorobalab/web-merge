@@ -139,3 +139,41 @@
 .confirm-modal-btn.danger:hover {
   background-color: #b91c1c;
 }
+
+/* Light Mode Confirm Modal */
+[data-theme='light'] .confirm-modal {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] .confirm-modal-header {
+  background-color: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .confirm-modal-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .confirm-modal-message {
+  color: #334155;
+}
+
+[data-theme='light'] .confirm-modal-actions {
+  background-color: #f8fafc;
+  border-top-color: #e2e8f0;
+}
+
+[data-theme='light'] .confirm-modal-btn.cancel {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .confirm-modal-btn.cancel:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+

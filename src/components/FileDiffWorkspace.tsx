@@ -16,6 +16,7 @@ export interface FileDiffWorkspaceProps {
   onEditorBeforeMount?: DiffEditorProps['beforeMount'];
   onEditorDidMount?: DiffEditorProps['onMount'];
   onDropItem: (file: File, handle?: FileSystemFileHandle, side?: 'left' | 'right') => void;
+  theme?: 'dark' | 'light';
 }
 
 export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
@@ -27,6 +28,7 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
   onEditorBeforeMount,
   onEditorDidMount,
   onDropItem,
+  theme = 'dark',
 }) => {
   const { t } = useTranslation();
   const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);
@@ -120,7 +122,7 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
             modified={rightFile.content}
             beforeMount={onEditorBeforeMount}
             onMount={onEditorDidMount}
-            theme="vs-dark"
+            theme={theme === 'light' ? 'vs' : 'vs-dark'}
             options={{
               readOnly: rightFile.readOnly ?? false,
               originalEditable: !(leftFile.readOnly ?? false),

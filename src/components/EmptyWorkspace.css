@@ -147,3 +147,32 @@
 .shortcut-desc {
   color: var(--text-secondary);
 }
+
+/* Light Theme Empty Workspace Overrides */
+[data-theme='light'] .empty-workspace-card {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .empty-action-secondary {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .empty-action-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme='light'] .empty-workspace-shortcuts {
+  border-top-color: #e2e8f0;
+}
+
+[data-theme='light'] .shortcut-keys kbd {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+

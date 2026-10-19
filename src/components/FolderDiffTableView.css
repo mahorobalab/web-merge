@@ -525,3 +525,119 @@
     transform: rotate(360deg);
   }
 }
+
+/* Light Theme Folder Diff Table Overrides */
+[data-theme='light'] .folder-table-toolbar {
+  background-color: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .folder-path-box {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme='light'] .filter-pills-bar {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+[data-theme='light'] .filter-pill {
+  color: #64748b;
+}
+
+[data-theme='light'] .filter-pill:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme='light'] .filter-pill.active {
+  background-color: #ffffff;
+  color: #2563eb;
+  border-color: #93c5fd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .sync-action-btn {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .sync-action-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+[data-theme='light'] .folder-search-box {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme='light'] .folder-search-box input {
+  color: #0f172a;
+}
+
+[data-theme='light'] .folder-table-scroll-wrapper {
+  background-color: #ffffff;
+}
+
+[data-theme='light'] .folder-diff-table thead {
+  background-color: #f1f5f9;
+}
+
+[data-theme='light'] .folder-diff-table th {
+  color: #475569;
+  border-bottom-color: #cbd5e1;
+  border-right-color: #e2e8f0;
+}
+
+[data-theme='light'] .folder-diff-table td {
+  border-bottom-color: #f1f5f9;
+  border-right-color: #f1f5f9;
+}
+
+[data-theme='light'] .node-name {
+  color: #0f172a;
+}
+
+[data-theme='light'] .diff-table-row:hover {
+  background-color: #f8fafc !important;
+}
+
+[data-theme='light'] .diff-table-row.selected {
+  outline-color: #2563eb;
+  background-color: #e0f2fe !important;
+}
+
+[data-theme='light'] .diff-table-row.status-modified {
+  background-color: #fefce8;
+}
+
+[data-theme='light'] .diff-table-row.status-modified .col-result {
+  color: #b45309;
+}
+
+[data-theme='light'] .diff-table-row.status-left-only {
+  background-color: #eff6ff;
+}
+
+[data-theme='light'] .diff-table-row.status-left-only .col-result {
+  color: #1d4ed8;
+}
+
+[data-theme='light'] .diff-table-row.status-right-only {
+  background-color: #f0f9ff;
+}
+
+[data-theme='light'] .diff-table-row.status-right-only .col-result {
+  color: #0284c7;
+}
+
+[data-theme='light'] .folder-table-statusbar {
+  background-color: #f1f5f9;
+  border-top-color: #e2e8f0;
+  color: #64748b;
+}
+
+

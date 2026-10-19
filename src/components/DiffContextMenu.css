@@ -79,3 +79,24 @@
   background-color: #383838;
   margin: 4px 0;
 }
+
+/* Light Theme Diff Context Menu */
+[data-theme='light'] .diff-context-menu {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .context-item {
+  color: #334155;
+}
+
+[data-theme='light'] .context-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme='light'] .context-divider {
+  background-color: #e2e8f0;
+}
+

@@ -273,3 +273,42 @@
     transform: scale(1) translateY(0);
   }
 }
+
+/* Light Theme Open Dialog */
+[data-theme='light'] .open-dialog {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] .open-dialog-header {
+  background-color: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .open-dialog-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .open-dialog-footer {
+  background-color: #f8fafc;
+  border-top-color: #e2e8f0;
+}
+
+[data-theme='light'] .open-path-input {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme='light'] .open-btn-browse {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .open-btn-browse:hover {
+  background-color: #f1f5f9;
+}
+

@@ -238,3 +238,50 @@
   height: 100%;
   object-fit: contain;
 }
+
+/* Light Theme Image Diff Overrides */
+[data-theme='light'] .image-diff-viewer {
+  background: #f8fafc;
+}
+
+[data-theme='light'] .image-diff-toolbar {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .btn-mode {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .btn-mode:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme='light'] .btn-mode.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+[data-theme='light'] .image-diff-canvas {
+  background-color: #f1f5f9;
+}
+
+[data-theme='light'] .image-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .image-meta {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .image-meta .meta-name {
+  color: #0f172a;
+}
+

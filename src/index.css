@@ -39,6 +39,50 @@
   --radius-lg: 8px;
 }
 
+[data-theme='light'] {
+  /* VS Code & Modern Light Theme Palette */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-editor: #ffffff;
+  
+  --border-subtle: #e2e8f0;
+  --border-focus: #3b82f6;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Diff Accents */
+  --diff-add: #16a34a;
+  --diff-add-bg: rgba(22, 163, 74, 0.12);
+  --diff-delete: #dc2626;
+  --diff-delete-bg: rgba(220, 38, 38, 0.12);
+  --diff-modified: #2563eb;
+  --diff-modified-bg: rgba(37, 99, 235, 0.12);
+
+  /* Primary Accent & Hover */
+  --accent-blue: #2563eb;
+  --accent-blue-hover: #1d4ed8;
+  --accent-emerald: #059669;
+  --accent-emerald-hover: #047857;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

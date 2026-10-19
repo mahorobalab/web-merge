@@ -160,3 +160,42 @@
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
+
+/* Light Theme Tab Overrides */
+[data-theme='light'] .webmerge-tab-bar {
+  background-color: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .webmerge-tab {
+  background-color: #e2e8f0;
+  color: #64748b;
+  border-right-color: #cbd5e1;
+}
+
+[data-theme='light'] .webmerge-tab:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+[data-theme='light'] .webmerge-tab.active {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-top-color: #2563eb;
+  border-bottom-color: #ffffff;
+}
+
+[data-theme='light'] .tab-close-btn:hover {
+  background-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme='light'] .tab-new-btn {
+  color: #64748b;
+}
+
+[data-theme='light'] .tab-new-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+

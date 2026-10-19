@@ -302,3 +302,73 @@
     transform: translateY(0);
   }
 }
+
+/* Light Theme Overrides */
+[data-theme='light'] .app-header {
+  background-color: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .brand-logo {
+  color: #2563eb;
+}
+
+[data-theme='light'] .brand-badge {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme='light'] .stat-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: var(--text-secondary);
+}
+
+[data-theme='light'] .app-toolbar {
+  background-color: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme='light'] .file-pane-info {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme='light'] .file-name-tag {
+  color: var(--text-primary);
+}
+
+[data-theme='light'] .btn-secondary {
+  background-color: #ffffff;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+[data-theme='light'] .btn-secondary:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+[data-theme='light'] .theme-toggle-btn {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .theme-toggle-btn:hover {
+  background-color: #f1f5f9;
+}
+
+[data-theme='light'] .drop-overlay {
+  background: rgba(248, 250, 252, 0.88);
+  color: #2563eb;
+}
+
+[data-theme='light'] .app-statusbar {
+  background-color: #f1f5f9;
+  border-top-color: #e2e8f0;
+  color: #475569;
+}
+

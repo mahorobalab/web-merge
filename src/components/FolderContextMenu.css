@@ -86,3 +86,24 @@
 .folder-context-menu .menu-icon.text-red {
   color: #ef4444;
 }
+
+/* Light Theme Context Menu */
+[data-theme='light'] .folder-context-menu {
+  background-color: rgba(255, 255, 255, 0.98);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .folder-context-menu .menu-divider {
+  background-color: #e2e8f0;
+}
+
+[data-theme='light'] .folder-context-menu .menu-item {
+  color: #334155;
+}
+
+[data-theme='light'] .folder-context-menu .menu-item:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Languages } from 'lucide-react';
+import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Languages, Sun, Moon } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface AppHeaderProps {
@@ -9,6 +9,8 @@ export interface AppHeaderProps {
   isFileMatch: boolean;
   locale: 'en' | 'ja';
   onToggleLocale: () => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -18,6 +20,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   isFileMatch,
   locale,
   onToggleLocale,
+  theme,
+  onToggleTheme,
 }) => {
   const { t } = useTranslation();
 
@@ -74,6 +78,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         >
           <Languages size={13} />
           <span>{locale === 'en' ? 'JA' : 'EN'}</span>
+        </button>
+
+        {/* Theme Toggle */}
+        <button
+          className="btn-secondary theme-toggle-btn"
+          style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? (locale === 'ja' ? 'ライトモードに切り替え' : 'Switch to Light Mode') : (locale === 'ja' ? 'ダークモードに切り替え' : 'Switch to Dark Mode')}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun size={13} color="#f59e0b" />
+              <span>{locale === 'ja' ? 'ライト' : 'Light'}</span>
+            </>
+          ) : (
+            <>
+              <Moon size={13} color="#3b82f6" />
+              <span>{locale === 'ja' ? 'ダーク' : 'Dark'}</span>
+            </>
+          )}
         </button>
       </div>
     </header>
