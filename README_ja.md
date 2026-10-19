@@ -4,14 +4,27 @@
 
 WebMerge は、WinMerge の強力な比較・マージ機能を、インストール不要・外部通信ゼロでどのOS（macOS, Linux, ChromeOS, Windows）でも利用可能にするオープンソースWebアプリケーションです。
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-web--merge.mahorobalab.workers.dev-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://web-merge.mahorobalab.workers.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
+[![Zero-Server](https://img.shields.io/badge/完全ローカル-Zero--Server-10B981?style=for-the-badge)](https://web-merge.mahorobalab.workers.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+🚀 **[インストール不要！今すぐライブデモを体験](https://web-merge.mahorobalab.workers.dev/)**
+
+[English Document](./README.md)
+
 ---
 
 ## ✨ 主な機能
 
-- 🔒 **完全ローカル完結（Zero-Server）**: ファイルやコードは外部サーバーへ一切送信されず、すべてブラウザ内で安全に処理されます。
-- 💾 **直接ローカル上書き保存**: File System Access API を活用し、ブラウザ上で編集した内容を元のローカルファイルに直接上書き保存可能。
+- 🔒 **完全ローカル完結（Zero-Server）**: ファイルやソースコードは外部サーバーへ一切送信されず、すべてブラウザ内で安全に処理されます。機密情報や社内コードも安心。
+- 💾 **直接ローカル上書き保存 & フォルダ間同期（マージ）**: File System Access API を活用し、ローカルファイルへの直接書き込みとフォルダ同期を実現。
+  - **双方向コピー＆同期**: 左から右、右から左へ、ファイルまたはフォルダツリー全体をワンクリックでコピー。
+  - **リアルタイムなステータス自動更新**: コピー完了と同時にツリーの該当行が「テキストファイルは異なります」から「同一（テキストファイルは同一です）」に瞬時に切り替わり、差分カウントも自動減少。
+  - **安全な削除＆確認ダイアログ**: 片側のみのファイル削除や両側削除に対応。フォルダコピー時や上書き・削除時には件数表示付きのVS Code風ダークテーマ確認ダイアログが表示され、誤操作を防止。
+  - **Handle追従**: コピー後のファイルもコピー先の `FileSystemFileHandle` を正確に保持するため、そのままエディタで直接上書き保存が可能。
 - 📁 **フォルダ丸ごと比較**: ディレクトリを再帰的に走査し、ファイルの一致・変更・左右の片側存在をリアルタイム判定。
-- ⚡ **Web Workerによる非同期スキャン & SHA-256ハッシュ比較**: 大規模フォルダでもUIを60FPSに維持しつつ、タイムスタンプに惑わされず真の内容一致を判定。
+- ⚡ **Web Workerによる非同期スキャン & SHA-256ハッシュ比較**: 大規模フォルダでもUIを60FPSに維持しつつ、タイムスタンプに惑わされず真の内容一致を高速判定。
 - 📜 **仮想スクロール（Virtual Scroll）**: 10,000件以上のファイルでもメモリ圧迫なく高速表示。
 - 🔤 **文字コード自動判定（Shift-JIS / EUC-JP / UTF-8）**: 日本のレガシー開発環境に多いShift-JISやEUC-JP、UTF-16(BOM)も自動検出・文字化けなしでデコード。
 - 🖼️ **画像比較（Image Diff Viewer）**: PNG, JPG, WebP, SVG, GIF等の画像をスワイプスライダー、左右並列、オニオンスキン、差分合成で視覚比較。
@@ -31,6 +44,10 @@ WebMerge は、WinMerge の強力な比較・マージ機能を、インスト�
 
 ### セットアップ
 ```bash
+# クローン
+git clone https://github.com/mahorobalab/web-merge.git
+cd web-merge
+
 # 依存パッケージのインストール
 npm install
 

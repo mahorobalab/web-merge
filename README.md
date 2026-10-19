@@ -4,6 +4,13 @@
 
 WebMerge is an open-source web application designed to bring the power of WinMerge to any platform (macOS, Linux, ChromeOS, Windows) with zero installation, zero server communication, and direct local file saving via the File System Access API.
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-web--merge.mahorobalab.workers.dev-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://web-merge.mahorobalab.workers.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
+[![Zero-Server](https://img.shields.io/badge/Zero--Server-100%25_Local--First-10B981?style=for-the-badge)](https://web-merge.mahorobalab.workers.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+🚀 **[Experience Live Demo Instantly!](https://web-merge.mahorobalab.workers.dev/)** *(Zero installation required)*
+
 [日本語ドキュメント (Japanese Document)](./README_ja.md)
 
 ---
@@ -11,7 +18,11 @@ WebMerge is an open-source web application designed to bring the power of WinMer
 ## ✨ Features
 
 - 🔒 **100% Local-First & Zero-Server**: No code or file data ever leaves your machine. Completely private and safe for proprietary code.
-- 💾 **Direct In-Place Saving**: Directly edit and save changes back to your local files using the File System Access API.
+- 💾 **Direct In-Place Saving & Folder Syncing**: Directly edit, save changes, and sync files/folders back to your local storage using the File System Access API with live handle tracking.
+  - **Bi-directional Copying**: Copy individual files or entire folder trees from Left to Right or Right to Left with single clicks.
+  - **Real-Time Reactive Updates**: Tree item statuses switch instantly from "Modified" to "Identical" upon copy completion without page reload.
+  - **Safe Deletion & Warning Modals**: Delete one-sided or matched files with VS Code-styled confirmation modals (displaying file counts) to prevent accidental data loss.
+  - **Live Handle Tracking**: Copied files immediately maintain fresh target `FileSystemFileHandle`s for direct in-place editing.
 - 📁 **Folder & Directory Diff**: Recursively compare directories with real-time status indicators (Identical, Modified, Left Only, Right Only).
 - ⚡ **Background Worker Scanning & SHA-256 Hashing**: Keeps the UI responsive at 60 FPS while computing fast cryptographic hashes to detect true content differences regardless of timestamps.
 - 📜 **Virtual Scrolling List**: Seamless 60 FPS rendering of 10,000+ files with low memory footprint.
@@ -34,7 +45,7 @@ WebMerge is an open-source web application designed to bring the power of WinMer
 ### Installation & Development
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/web-merge.git
+git clone https://github.com/mahorobalab/web-merge.git
 cd web-merge
 
 # Install dependencies
