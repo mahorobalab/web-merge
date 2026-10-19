@@ -64,12 +64,12 @@ interface Toast {
 const DEFAULT_LEFT_DEMO = `// WebMerge: Left file (Original)
 // Drag & drop a local file here, click "Open Left", or select a folder to compare.
 
-function calculateTotal(price: number, taxRate: number): number {
+export function calculateTotal(price: number, taxRate: number): number {
   const tax = price * taxRate;
   return price + tax;
 }
 
-const config = {
+export const config = {
   appName: "WebMerge",
   version: "0.1.0",
   mode: "development",
@@ -80,13 +80,13 @@ const config = {
 const DEFAULT_RIGHT_DEMO = `// WebMerge: Right file (Modified)
 // Directly edit the text and click "Save Right" to write back to your local file.
 
-function calculateTotal(price: number, taxRate: number, discount: number = 0): number {
+export function calculateTotal(price: number, taxRate: number, discount: number = 0): number {
   const discountedPrice = price - discount;
   const tax = discountedPrice * taxRate;
   return discountedPrice + tax;
 }
 
-const config = {
+export const config = {
   appName: "WebMerge",
   version: "0.1.0",
   mode: "production",
@@ -538,6 +538,25 @@ export const App: React.FC = () => {
     }
   };
 
+  // Monaco Editor configuration before mount
+  const handleEditorBeforeMount: DiffEditorProps['beforeMount'] = (monaco) => {
+    // Disable semantic diagnostics (duplicate identifier, unresolved import)
+    // because diff viewer compares separate file snapshots rather than a single unified project.
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+    });
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+    });
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ESNext,
+      allowNonTextFiles: true,
+      isolatedModules: true,
+    });
+  };
+
   // Monaco Editor mount callback
   const handleEditorDidMount: DiffEditorProps['onMount'] = (editor) => {
     diffEditorRef.current = editor;
@@ -853,6 +872,7 @@ export const App: React.FC = () => {
               language={language}
               original={leftFile.content}
               modified={rightFile.content}
+              beforeMount={handleEditorBeforeMount}
               onMount={handleEditorDidMount}
               theme="vs-dark"
               options={{
