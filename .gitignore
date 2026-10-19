@@ -43,3 +43,7 @@ test-results/
 target/
 Cargo.lock
 pkg/
+
+# Cloudflare Wrangler
+.wrangler/
+
