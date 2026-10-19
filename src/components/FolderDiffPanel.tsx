@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { DiffItem, DiffSummary, DiffStatus } from '../utils/diffMatcher';
 import { useTranslation } from '../i18n/I18nContext';
+import { VirtualList } from './VirtualList';
 import './FolderDiffPanel.css';
 
 interface FolderDiffPanelProps {
@@ -201,19 +202,23 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
         </div>
       </div>
 
-      {/* Diff File List */}
+      {/* Diff File List with Virtual Scrolling for 10,000+ files */}
       <div className="diff-list-container">
-        {filteredItems.length === 0 ? (
-          <div className="empty-state">
-            <Filter size={24} />
-            <span>
-              {diffItems.length === 0
-                ? t.folderPanel.emptySelectPrompt
-                : t.folderPanel.noMatchingFiles}
-            </span>
-          </div>
-        ) : (
-          filteredItems.map((item) => (
+        <VirtualList
+          items={filteredItems}
+          itemHeight={32}
+          overscan={8}
+          emptyContent={
+            <div className="empty-state">
+              <Filter size={24} />
+              <span>
+                {diffItems.length === 0
+                  ? t.folderPanel.emptySelectPrompt
+                  : t.folderPanel.noMatchingFiles}
+              </span>
+            </div>
+          }
+          renderItem={(item) => (
             <div
               key={item.path}
               className={`diff-list-item ${selectedPath === item.path ? 'selected' : ''}`}
@@ -228,8 +233,8 @@ export const FolderDiffPanel: React.FC<FolderDiffPanelProps> = ({
                 {getStatusLabel(item.status)}
               </span>
             </div>
-          ))
-        )}
+          )}
+        />
       </div>
     </div>
   );
