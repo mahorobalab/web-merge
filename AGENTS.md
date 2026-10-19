@@ -80,3 +80,14 @@ Develop incrementally with small, focused commits.
 - Maintain clean, professional, English-based code comments across all source files.
 - Deliver a premium, sleek developer tool aesthetic inspired by VS Code.
 - Support internationalization: default to English (`en`), with seamless support for Japanese (`ja`).
+
+---
+
+## 7. Code Organization & Proactive Refactoring Rule
+
+- **Proactive Modularization**: Agents must proactively organize and refactor code into clean functional modules, custom hooks, and sub-components without waiting for explicit user instructions.
+- **File Size Guideline (~1,000 Lines Threshold)**:
+  - When any file approaches or exceeds ~1,000 lines (e.g. `App.tsx` or large complex views), proactively decompose it into custom hooks (`src/hooks/`), focused sub-components (`src/components/`), or dedicated pure utility modules (`src/utils/`).
+  - Keep `App.tsx` lightweight (ideally under 300–400 lines) functioning primarily as an orchestration and layout layer.
+- **Zero-Regression Guarantee**:
+  - Always verify that all existing Vitest unit tests pass (`npm test`) and type checking succeeds (`tsc -b`) before and after refactoring.

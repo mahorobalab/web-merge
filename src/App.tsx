@@ -1,29 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { DiffEditor } from '@monaco-editor/react';
-import type { DiffEditorProps } from '@monaco-editor/react';
-import {
-  FileText,
-  Save,
-  ArrowRightLeft,
-  ArrowLeft,
-  ArrowRight,
-  FolderOpen,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  Columns,
-  Rows,
-  ShieldCheck,
-  FolderTree,
-  FilePlus2,
-  Languages,
-  ChevronDown,
-  ChevronUp,
-  FileCode,
-  Download,
-  RefreshCw,
-} from 'lucide-react';
-
+import type { OpenedFile } from './core/fileStorage';
 import {
   openFileWithPicker,
   readFileObject,
@@ -32,67 +8,34 @@ import {
   downloadFileContent,
   isFileSystemAccessSupported,
 } from './core/fileStorage';
-import type { OpenedFile } from './core/fileStorage';
-import { formatEncodingLabel, type SupportedEncoding } from './utils/encodingDetector';
-import { generateUnifiedDiff, generateHtmlReport } from './utils/diffExporter';
 import { openDirectoryWithPicker, parseFileList } from './core/directoryScanner';
 import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
-import { FolderDiffTableView } from './components/FolderDiffTableView';
-import { TabBar, type TabItem } from './components/TabBar';
-import { ImageDiffViewer } from './components/ImageDiffViewer';
-import { DiffContextMenu } from './components/DiffContextMenu';
-import { OpenDialog } from './components/OpenDialog';
-import {
-  copyChunkLeftToRight,
-  copyChunkRightToLeft,
-  copySelectedLines,
-  findLineChangeAtLine,
-  type LineChangeInfo,
-} from './utils/diffChunkMerger';
-import { isImageFileName } from './utils/imageDetector';
+import { generateUnifiedDiff, generateHtmlReport } from './utils/diffExporter';
 import { detectLanguage } from './utils/languageDetector';
 import { areTextsEqual, type NormalizeOptions } from './utils/textNormalizer';
+import type { SupportedEncoding } from './utils/encodingDetector';
 import { useTranslation } from './i18n/I18nContext';
+
+// Types
+import type { FileState, Toast, AppTab } from './types/app';
+
+// Hooks
+import { useTabs } from './hooks/useTabs';
+import { useDiffEditorMerge } from './hooks/useDiffEditorMerge';
+import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
+
+// Components
+import { AppHeader } from './components/AppHeader';
+import { AppToolbar } from './components/AppToolbar';
+import { TabBar } from './components/TabBar';
+import { FolderDiffTableView } from './components/FolderDiffTableView';
+import { FileDiffWorkspace } from './components/FileDiffWorkspace';
+import { AppStatusBar } from './components/AppStatusBar';
+import { DiffContextMenu } from './components/DiffContextMenu';
+import { OpenDialog } from './components/OpenDialog';
+import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './App.css';
-
-interface FileState {
-  name: string;
-  path?: string;
-  content: string;
-  encoding?: SupportedEncoding;
-  imageUrl?: string;
-  handle?: FileSystemFileHandle;
-  lastModified?: number;
-  isDirty: boolean;
-  size: number;
-  readOnly?: boolean;
-}
-
-interface ContextMenuState {
-  visible: boolean;
-  x: number;
-  y: number;
-  side: 'left' | 'right';
-  lineNumber: number;
-  hasSelection: boolean;
-  selection?: {
-    startLineNumber: number;
-    endLineNumber: number;
-  };
-}
-
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'warning' | 'error' | 'info';
-}
-
-export interface AppTab extends TabItem {
-  path?: string;
-  leftFile?: FileState;
-  rightFile?: FileState;
-}
 
 const DEFAULT_LEFT_DEMO = `// WebMerge: Left file (Original)
 // Drag & drop a local file here, click "Open Left", or select a folder to compare.
@@ -130,7 +73,7 @@ export const config = {
 export const App: React.FC = () => {
   const { t, locale, setLocale } = useTranslation();
 
-  // Active files displayed in the Diff Editor
+  // Active files displayed in Diff Editor
   const [leftFile, setLeftFile] = useState<FileState>({
     name: 'left_sample.ts',
     content: DEFAULT_LEFT_DEMO,
@@ -147,23 +90,43 @@ export const App: React.FC = () => {
     size: DEFAULT_RIGHT_DEMO.length,
   });
 
-  // Floating Open Dialog State
+  // Dialog & Notification state
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Tab Management State
-  const [tabs, setTabs] = useState<AppTab[]>([
-    {
-      id: 'demo-file',
-      type: 'file',
-      title: 'left_sample.ts ↔ right_sample.ts',
-      canClose: false,
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>('demo-file');
+  const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
 
-  const activeTab = useMemo(() => {
-    return tabs.find((t) => t.id === activeTabId) || tabs[0];
-  }, [tabs, activeTabId]);
+  // MDI Tabs management hook
+  const {
+    tabs,
+    setTabs,
+    activeTabId,
+    setActiveTabId,
+    activeTab,
+    handleSelectTab,
+    handleCloseTab,
+    markActiveTabDirty,
+  } = useTabs({
+    initialTabs: [
+      {
+        id: 'demo-file',
+        type: 'file',
+        title: 'left_sample.ts ↔ right_sample.ts',
+        canClose: false,
+      },
+    ],
+    initialActiveTabId: 'demo-file',
+    leftFile,
+    rightFile,
+    setLeftFile,
+    setRightFile,
+  });
 
   // Folder comparison states
   const [leftFolderName, setLeftFolderName] = useState<string>('');
@@ -178,9 +141,13 @@ export const App: React.FC = () => {
   const [scanProgressText, setScanProgressText] = useState<string>('');
 
   // Aggregated directory diff results
-  const diffResult = React.useMemo<{ items: DiffItem[]; summary: DiffSummary }>(() => {
+  const diffResult = useMemo<{ items: DiffItem[]; summary: DiffSummary }>(() => {
     return matchFolderEntries(leftEntries, rightEntries);
   }, [leftEntries, rightEntries]);
+
+  const folderDiffCount = useMemo(() => {
+    return diffResult.summary.modified + diffResult.summary.leftOnly + diffResult.summary.rightOnly;
+  }, [diffResult.summary]);
 
   // Diff Options
   const [ignoreTrimWhitespace, setIgnoreTrimWhitespace] = useState(true);
@@ -191,139 +158,56 @@ export const App: React.FC = () => {
     ignoreBlankLines: false,
   });
 
-  // UI States
-  const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  // Context Menu State
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    side: 'left',
-    lineNumber: 1,
-    hasSelection: false,
-  });
-
-  // Hidden inputs for fallback file and folder pickers
+  // Fallback hidden inputs
   const leftFileInputRef = useRef<HTMLInputElement>(null);
   const rightFileInputRef = useRef<HTMLInputElement>(null);
   const leftDirInputRef = useRef<HTMLInputElement>(null);
   const rightDirInputRef = useRef<HTMLInputElement>(null);
 
-  // Diff Editor instance ref
-  const diffEditorRef = useRef<any>(null);
+  // Editor merge and navigation operations hook
+  const {
+    diffEditorRef,
+    contextMenu,
+    setContextMenu,
+    handleNextDiff,
+    handlePrevDiff,
+    handleMerge,
+    handleCopyChunkToRight,
+    handleCopyChunkToLeft,
+    handleCopySelectedToRight,
+    handleCopySelectedToLeft,
+    handleUndo,
+    handleRedo,
+    handleCut,
+    handleCopy,
+    handlePaste,
+    handleSelectAll,
+    handleEditorBeforeMount,
+    handleEditorDidMount,
+  } = useDiffEditorMerge({
+    setLeftFile: (val) => {
+      setLeftFile(val);
+      markActiveTabDirty(true);
+    },
+    setRightFile: (val) => {
+      setRightFile(val);
+      markActiveTabDirty(true);
+    },
+    showToast,
+  });
 
-  // Jump to next difference using getLineChanges()
-  const handleNextDiff = useCallback(() => {
-    if (!diffEditorRef.current) return;
-    const editor = diffEditorRef.current;
-    const lineChanges = editor.getLineChanges();
-    if (!lineChanges || lineChanges.length === 0) return;
-
-    const modifiedEditor = editor.getModifiedEditor();
-    const currentLine = modifiedEditor.getPosition()?.lineNumber || 1;
-
-    // Find the next change block
-    const nextChange =
-      lineChanges.find((c: any) => c.modifiedStartLineNumber > currentLine) || lineChanges[0];
-    if (nextChange) {
-      const targetLine = nextChange.modifiedStartLineNumber || 1;
-      modifiedEditor.setPosition({ lineNumber: targetLine, column: 1 });
-      modifiedEditor.revealLineInCenter(targetLine);
-      modifiedEditor.focus();
-    }
-  }, []);
-
-  // Jump to previous difference using getLineChanges()
-  const handlePrevDiff = useCallback(() => {
-    if (!diffEditorRef.current) return;
-    const editor = diffEditorRef.current;
-    const lineChanges = editor.getLineChanges();
-    if (!lineChanges || lineChanges.length === 0) return;
-
-    const modifiedEditor = editor.getModifiedEditor();
-    const currentLine = modifiedEditor.getPosition()?.lineNumber || 1;
-
-    // Find the previous change block
-    const prevChange =
-      [...lineChanges].reverse().find((c: any) => c.modifiedStartLineNumber < currentLine) ||
-      lineChanges[lineChanges.length - 1];
-    if (prevChange) {
-      const targetLine = prevChange.modifiedStartLineNumber || 1;
-      modifiedEditor.setPosition({ lineNumber: targetLine, column: 1 });
-      modifiedEditor.revealLineInCenter(targetLine);
-      modifiedEditor.focus();
-    }
-  }, []);
-
-  const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
-
-  // Global keyboard shortcut to open WinMerge compare dialog (Ctrl+O / Ctrl+N)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O' || e.key === 'n' || e.key === 'N')) {
-        e.preventDefault();
-        setIsOpenDialogOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Dev-only helper for browser verification of folder comparison
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      (window as any).__loadSampleFolderCompare = () => {
-        const demoLeft: FileEntry[] = [
-          { path: 'manifest.json', name: 'manifest.json', size: 1024, lastModified: 1729330000000 },
-          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
-          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
-          { path: 'dist/manifest.json', name: 'manifest.json', size: 850, lastModified: 1729330000000 },
-          { path: 'dist/assets/app.js', name: 'app.js', size: 12048, lastModified: 1729330000000 },
-          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
-        ];
-        const demoRight: FileEntry[] = [
-          { path: 'manifest.json', name: 'manifest.json', size: 1080, lastModified: 1729331000000 },
-          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
-          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
-          { path: 'dist/manifest.json', name: 'manifest.json', size: 920, lastModified: 1729332000000 },
-          { path: 'dist/assets/app.js', name: 'app.js', size: 13000, lastModified: 1729331500000 },
-          { path: 'dist/新規 テキスト ドキュメント.txt', name: '新規 テキスト ドキュメント.txt', size: 120, lastModified: 1729332000000 },
-          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
-        ];
-        setLeftFolderName('freelandre1');
-        setRightFolderName('freelandre2');
-        setLeftEntries(demoLeft);
-        setRightEntries(demoRight);
-
-        const folderTabId = 'folder-diff';
-        const folderTab: AppTab = {
-          id: folderTabId,
-          type: 'folder',
-          title: 'freelandre1 ↔ freelandre2',
-          canClose: false,
-        };
-        setTabs((prev) => {
-          const exists = prev.some((t) => t.id === folderTabId);
-          if (exists) return prev.map((t) => (t.id === folderTabId ? folderTab : t));
-          return [folderTab, ...prev];
-        });
-        setActiveTabId(folderTabId);
-      };
-
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('demo') === 'folder' || params.get('loadSample') === 'true') {
-        (window as any).__loadSampleFolderCompare();
-      }
-    }
-  }, []);
+  // Global Keyboard Shortcuts hook
+  useGlobalShortcuts({
+    leftFile,
+    rightFile,
+    onOpenCompareDialog: () => setIsOpenDialogOpen(true),
+    onSaveLeft: () => handleSave('left'),
+    onSaveRight: () => handleSave('right'),
+    onNextDiff: handleNextDiff,
+    onPrevDiff: handlePrevDiff,
+    onCopyChunkToRight: handleCopyChunkToRight,
+    onCopyChunkToLeft: handleCopyChunkToLeft,
+  });
 
   // Automatic syntax detection
   const language = detectLanguage(rightFile.name || leftFile.name);
@@ -384,7 +268,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Select directory (either via File System Access API or file input fallback)
+  // Select directory
   const handleOpenFolder = async (side: 'left' | 'right') => {
     if (isFileSystemAccessSupported()) {
       try {
@@ -411,7 +295,6 @@ export const App: React.FC = () => {
         showToast(t.toasts.fileError(err.message), 'error');
       }
     } else {
-      // Fallback input for browsers without showDirectoryPicker
       if (side === 'left') {
         leftDirInputRef.current?.click();
       } else {
@@ -459,25 +342,19 @@ export const App: React.FC = () => {
       let newLeftEntries: FileEntry[] = [];
       let newRightEntries: FileEntry[] = [];
 
-      // Scan left folder
       if (leftDirHandle) {
         setScanProgressText(`${leftDirHandle.name}...`);
         newLeftEntries = await scanFolderAsync(leftDirHandle, 'left', {
-          onProgress: (count, path) => {
-            setScanProgressText(`[L] ${count} (${path})`);
-          },
+          onProgress: (count, path) => setScanProgressText(`[L] ${count} (${path})`),
         });
       } else if (leftFallbackFiles) {
         newLeftEntries = parseFileList(leftFallbackFiles);
       }
 
-      // Scan right folder
       if (rightDirHandle) {
         setScanProgressText(`${rightDirHandle.name}...`);
         newRightEntries = await scanFolderAsync(rightDirHandle, 'right', {
-          onProgress: (count, path) => {
-            setScanProgressText(`[R] ${count} (${path})`);
-          },
+          onProgress: (count, path) => setScanProgressText(`[R] ${count} (${path})`),
         });
       } else if (rightFallbackFiles) {
         newRightEntries = parseFileList(rightFallbackFiles);
@@ -486,7 +363,6 @@ export const App: React.FC = () => {
       setLeftEntries(newLeftEntries);
       setRightEntries(newRightEntries);
 
-      // Compute diff summary to show in toast
       const matched = matchFolderEntries(newLeftEntries, newRightEntries);
       const diffCount = matched.summary.modified + matched.summary.leftOnly + matched.summary.rightOnly;
 
@@ -531,57 +407,6 @@ export const App: React.FC = () => {
     showToast(t.toasts.resetSuccess, 'info');
   };
 
-  // Open dialog handlers
-  // Tab Switching Handler
-  const handleSelectTab = (nextTabId: string) => {
-    if (nextTabId === activeTabId) return;
-
-    // Save current file states to active tab if it's a file tab
-    setTabs((prev) =>
-      prev.map((tab) => {
-        if (tab.id === activeTabId && tab.type === 'file') {
-          return {
-            ...tab,
-            leftFile: { ...leftFile },
-            rightFile: { ...rightFile },
-            isDirty: leftFile.isDirty || rightFile.isDirty,
-          };
-        }
-        return tab;
-      })
-    );
-
-    // If target tab is a file tab with saved files, restore them
-    const targetTab = tabs.find((t) => t.id === nextTabId);
-    if (targetTab && targetTab.type === 'file') {
-      if (targetTab.leftFile) setLeftFile(targetTab.leftFile);
-      if (targetTab.rightFile) setRightFile(targetTab.rightFile);
-    }
-
-    setActiveTabId(nextTabId);
-  };
-
-  // Tab Close Handler
-  const handleCloseTab = (tabId: string) => {
-    setTabs((prev) => {
-      const filtered = prev.filter((t) => t.id !== tabId);
-      if (activeTabId === tabId) {
-        // Switch to folder-diff tab if available, else first remaining tab
-        const folderTab = filtered.find((t) => t.id === 'folder-diff');
-        const nextActive = folderTab ? folderTab.id : (filtered[0]?.id || '');
-        if (nextActive) {
-          const target = filtered.find((t) => t.id === nextActive);
-          if (target && target.type === 'file') {
-            if (target.leftFile) setLeftFile(target.leftFile);
-            if (target.rightFile) setRightFile(target.rightFile);
-          }
-          setActiveTabId(nextActive);
-        }
-      }
-      return filtered;
-    });
-  };
-
   // Open file diff in a tab from FolderDiffTableView double-click
   const handleOpenFileDiffFromTable = async (item: DiffItem) => {
     const tabId = 'file-' + item.path;
@@ -592,7 +417,6 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Load file contents on-demand
     try {
       let leftContent = '';
       let leftEncoding: SupportedEncoding = 'utf-8';
@@ -709,7 +533,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open dialog handlers
+  // Open dialog compare handlers
   const handleCompareFilesFromDialog = (
     leftOpened: OpenedFile,
     rightOpened: OpenedFile,
@@ -832,40 +656,48 @@ export const App: React.FC = () => {
     }
   };
 
-
   // Save handling
   const handleSave = async (side: 'left' | 'right') => {
-    const target = side === 'left' ? leftFile : rightFile;
+    const file = side === 'left' ? leftFile : rightFile;
+    if (file.readOnly) {
+      showToast(locale === 'ja' ? '読み取り専用のため保存できません' : 'File is read-only', 'warning');
+      return;
+    }
 
-    const currentContent =
-      diffEditorRef.current && (side === 'left' ? diffEditorRef.current.getOriginalEditor().getValue() : diffEditorRef.current.getModifiedEditor().getValue());
-    const contentToSave = currentContent ?? target.content;
+    const editorValue =
+      side === 'left'
+        ? diffEditorRef.current?.getOriginalEditor().getValue() ?? file.content
+        : diffEditorRef.current?.getModifiedEditor().getValue() ?? file.content;
 
-    if (target.handle) {
-      try {
-        const result = await saveFileWithHandle(target.handle, contentToSave, target.lastModified);
-        if (result.conflict) {
-          const proceed = window.confirm(t.toasts.conflictConfirm);
-          if (proceed) {
-            const forceResult = await saveFileWithHandle(target.handle, contentToSave);
-            updateSavedState(side, contentToSave, forceResult.newLastModified);
-            showToast(t.toasts.forceSaved(side === 'left' ? 'Left' : 'Right'), 'warning');
-          }
-        } else {
-          updateSavedState(side, contentToSave, result.newLastModified);
-          showToast(t.toasts.savedSuccess(side === 'left' ? 'Left' : 'Right'), 'success');
+    try {
+      if (file.handle) {
+        const { success, newLastModified } = await saveFileWithHandle(
+          file.handle,
+          editorValue,
+          file.lastModified
+        );
+
+        if (success) {
+          updateFileContentAfterSave(side, editorValue, newLastModified);
+          markActiveTabDirty(false);
+          showToast(t.toasts.savedSuccess(side === 'left' ? 'Left' : 'Right'));
         }
-      } catch (err: any) {
-        showToast(t.toasts.saveError(err.message), 'error');
+      } else {
+        downloadFileContent(file.name, editorValue);
+        updateFileContentAfterSave(side, editorValue, Date.now());
+        markActiveTabDirty(false);
+        showToast(t.toasts.downloaded(file.name));
       }
-    } else {
-      downloadFileContent(target.name, contentToSave);
-      updateSavedState(side, contentToSave);
-      showToast(t.toasts.downloaded(target.name), 'success');
+    } catch (err: any) {
+      showToast(t.toasts.saveError(err.message), 'error');
     }
   };
 
-  const updateSavedState = (side: 'left' | 'right', newContent: string, newLastModified?: number) => {
+  const updateFileContentAfterSave = (
+    side: 'left' | 'right',
+    newContent: string,
+    newLastModified?: number
+  ) => {
     if (side === 'left') {
       setLeftFile((prev) => ({
         ...prev,
@@ -883,31 +715,10 @@ export const App: React.FC = () => {
     }
   };
 
-  // Merge actions
-  const handleMerge = (direction: 'leftToRight' | 'rightToLeft') => {
-    if (!diffEditorRef.current) return;
-    const originalEditor = diffEditorRef.current.getOriginalEditor();
-    const modifiedEditor = diffEditorRef.current.getModifiedEditor();
-
-    if (direction === 'leftToRight') {
-      const originalValue = originalEditor.getValue();
-      modifiedEditor.setValue(originalValue);
-      setRightFile((prev) => ({ ...prev, content: originalValue, isDirty: true }));
-      showToast(t.toasts.mergedLeftToRight);
-    } else {
-      const modifiedValue = modifiedEditor.getValue();
-      originalEditor.setValue(modifiedValue);
-      setLeftFile((prev) => ({ ...prev, content: modifiedValue, isDirty: true }));
-      showToast(t.toasts.mergedRightToLeft);
-    }
-  };
-
   // Export handlers
   const handleExportHtmlReport = () => {
-    const leftContent =
-      diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
-    const rightContent =
-      diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
+    const leftContent = diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
+    const rightContent = diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
 
     const html = generateHtmlReport({
       leftTitle: leftFile.path || leftFile.name,
@@ -923,10 +734,8 @@ export const App: React.FC = () => {
   };
 
   const handleExportPatch = () => {
-    const leftContent =
-      diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
-    const rightContent =
-      diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
+    const leftContent = diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
+    const rightContent = diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
 
     const patch = generateUnifiedDiff(
       leftFile.path || leftFile.name,
@@ -940,370 +749,64 @@ export const App: React.FC = () => {
     showToast(t.toasts.exportedPatch(patchName));
   };
 
-  // Drag and drop handlers
-  const handleDragOver = (e: React.DragEvent, side: 'left' | 'right') => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragSide(side);
+  // Drag and drop file loading
+  const handleDropFile = async (file: File, handle?: FileSystemFileHandle, side: 'left' | 'right' = 'left') => {
+    const opened = await readFileObject(file, handle);
+    updateFileState(side, opened);
+    showToast(t.toasts.openedFile(side === 'left' ? 'Left' : 'Right', opened.name));
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragSide(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, side: 'left' | 'right') => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragSide(null);
-
-    const items = e.dataTransfer.items;
-    if (items && items.length > 0) {
-      const item = items[0];
-      if (item.kind === 'file') {
-        const file = item.getAsFile();
-        if (file) {
-          let handle: FileSystemFileHandle | undefined;
-          if ('getAsFileSystemHandle' in item) {
-            handle = (await (item as any).getAsFileSystemHandle()) as FileSystemFileHandle;
-          }
-          const opened = await readFileObject(file, handle);
-          updateFileState(side, opened);
-          showToast(t.toasts.openedFile(side === 'left' ? 'Left' : 'Right', opened.name));
-        }
-      }
-    }
-  };
-
-  // Monaco Editor configuration before mount
-  const handleEditorBeforeMount: DiffEditorProps['beforeMount'] = (monaco) => {
-    // Disable semantic diagnostics (duplicate identifier, unresolved import)
-    // because diff viewer compares separate file snapshots rather than a single unified project.
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: false,
-    });
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: false,
-    });
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-      target: monaco.languages.typescript.ScriptTarget.ESNext,
-      allowNonTextFiles: true,
-      isolatedModules: true,
-    });
-  };
-
-  // Monaco Editor mount callback
-  const handleEditorDidMount: DiffEditorProps['onMount'] = (editor) => {
-    diffEditorRef.current = editor;
-
-    const originalEditor = editor.getOriginalEditor();
-    const modifiedEditor = editor.getModifiedEditor();
-
-    originalEditor.onDidChangeModelContent(() => {
-      setLeftFile((prev) => ({ ...prev, isDirty: true }));
-    });
-
-    modifiedEditor.onDidChangeModelContent(() => {
-      setRightFile((prev) => ({ ...prev, isDirty: true }));
-    });
-
-    originalEditor.onContextMenu((e: any) => {
-      e.event?.preventDefault();
-      handleOpenContextMenu('left', e);
-    });
-
-    modifiedEditor.onContextMenu((e: any) => {
-      e.event?.preventDefault();
-      handleOpenContextMenu('right', e);
-    });
-
-    const origDom = originalEditor.getDomNode();
-    if (origDom) {
-      origDom.addEventListener('contextmenu', (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleOpenContextMenuDirect('left', e.clientX, e.clientY);
-      });
-    }
-
-    const modDom = modifiedEditor.getDomNode();
-    if (modDom) {
-      modDom.addEventListener('contextmenu', (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleOpenContextMenuDirect('right', e.clientX, e.clientY);
-      });
-    }
-  };
-
-  const handleOpenContextMenuDirect = (side: 'left' | 'right', clientX: number, clientY: number) => {
-    const editor =
-      side === 'left'
-        ? diffEditorRef.current?.getOriginalEditor()
-        : diffEditorRef.current?.getModifiedEditor();
-    const pos = editor?.getTargetFromCoordinate?.(clientX, clientY)?.position;
-    const lineNumber = pos?.lineNumber || editor?.getPosition()?.lineNumber || 1;
-    const selection = editor?.getSelection();
-    const hasSelection = !!(selection && !selection.isEmpty());
-
-    setContextMenu({
-      visible: true,
-      x: clientX,
-      y: clientY,
-      side,
-      lineNumber,
-      hasSelection,
-      selection: hasSelection
-        ? { startLineNumber: selection.startLineNumber, endLineNumber: selection.endLineNumber }
-        : undefined,
-    });
-  };
-
-  const handleOpenContextMenu = (side: 'left' | 'right', e: any) => {
-    const position = e.target?.position;
-    const lineNumber = position?.lineNumber || 1;
-    const editor =
-      side === 'left'
-        ? diffEditorRef.current?.getOriginalEditor()
-        : diffEditorRef.current?.getModifiedEditor();
-    const selection = editor?.getSelection();
-    const hasSelection = !!(selection && !selection.isEmpty());
-
-    setContextMenu({
-      visible: true,
-      x: e.event?.posx ?? (e.event?.clientX ?? 100),
-      y: e.event?.posy ?? (e.event?.clientY ?? 100),
-      side,
-      lineNumber,
-      hasSelection,
-      selection: hasSelection
-        ? { startLineNumber: selection.startLineNumber, endLineNumber: selection.endLineNumber }
-        : undefined,
-    });
-  };
-
-  // Copy diff chunk under cursor/line from left to right
-  const handleCopyChunkToRight = useCallback(() => {
-    if (!diffEditorRef.current) return;
-    const editor = diffEditorRef.current;
-    const lineChanges: LineChangeInfo[] = editor.getLineChanges() || [];
-    const origEditor = editor.getOriginalEditor();
-    const modEditor = editor.getModifiedEditor();
-
-    const currentLine =
-      contextMenu.visible && contextMenu.side === 'left'
-        ? contextMenu.lineNumber
-        : origEditor.getPosition()?.lineNumber || 1;
-
-    let change = findLineChangeAtLine(lineChanges, 'left', currentLine);
-    if (!change && lineChanges.length > 0) {
-      change =
-        lineChanges.find((c: any) => c.originalStartLineNumber >= currentLine) || lineChanges[0];
-    }
-
-    if (!change) return;
-
-    const leftContent = origEditor.getValue();
-    const rightContent = modEditor.getValue();
-    const updatedRight = copyChunkLeftToRight(leftContent, rightContent, change);
-
-    modEditor.setValue(updatedRight);
-    setRightFile((prev) => ({ ...prev, content: updatedRight, isDirty: true }));
-    showToast(t.toasts.copiedChunkToRight);
-  }, [contextMenu, t, showToast]);
-
-  // Copy diff chunk under cursor/line from right to left
-  const handleCopyChunkToLeft = useCallback(() => {
-    if (!diffEditorRef.current) return;
-    const editor = diffEditorRef.current;
-    const lineChanges: LineChangeInfo[] = editor.getLineChanges() || [];
-    const origEditor = editor.getOriginalEditor();
-    const modEditor = editor.getModifiedEditor();
-
-    const currentLine =
-      contextMenu.visible && contextMenu.side === 'right'
-        ? contextMenu.lineNumber
-        : modEditor.getPosition()?.lineNumber || 1;
-
-    let change = findLineChangeAtLine(lineChanges, 'right', currentLine);
-    if (!change && lineChanges.length > 0) {
-      change =
-        lineChanges.find((c: any) => c.modifiedStartLineNumber >= currentLine) || lineChanges[0];
-    }
-
-    if (!change) return;
-
-    const leftContent = origEditor.getValue();
-    const rightContent = modEditor.getValue();
-    const updatedLeft = copyChunkRightToLeft(leftContent, rightContent, change);
-
-    origEditor.setValue(updatedLeft);
-    setLeftFile((prev) => ({ ...prev, content: updatedLeft, isDirty: true }));
-    showToast(t.toasts.copiedChunkToLeft);
-  }, [contextMenu, t, showToast]);
-
-  // Copy highlighted/selected lines to opposite side
-  const handleCopySelectedToRight = useCallback(() => {
-    if (!diffEditorRef.current || !contextMenu.selection) return;
-    const origEditor = diffEditorRef.current.getOriginalEditor();
-    const modEditor = diffEditorRef.current.getModifiedEditor();
-
-    const { startLineNumber, endLineNumber } = contextMenu.selection;
-    const leftContent = origEditor.getValue();
-    const rightContent = modEditor.getValue();
-    const targetPos = modEditor.getPosition()?.lineNumber || startLineNumber;
-
-    const updatedRight = copySelectedLines(
-      leftContent,
-      rightContent,
-      startLineNumber,
-      endLineNumber,
-      targetPos,
-      targetPos + (endLineNumber - startLineNumber)
-    );
-
-    modEditor.setValue(updatedRight);
-    setRightFile((prev) => ({ ...prev, content: updatedRight, isDirty: true }));
-    showToast(t.toasts.copiedSelectedToRight);
-  }, [contextMenu, t, showToast]);
-
-  const handleCopySelectedToLeft = useCallback(() => {
-    if (!diffEditorRef.current || !contextMenu.selection) return;
-    const origEditor = diffEditorRef.current.getOriginalEditor();
-    const modEditor = diffEditorRef.current.getModifiedEditor();
-
-    const { startLineNumber, endLineNumber } = contextMenu.selection;
-    const leftContent = origEditor.getValue();
-    const rightContent = modEditor.getValue();
-    const targetPos = origEditor.getPosition()?.lineNumber || startLineNumber;
-
-    const updatedLeft = copySelectedLines(
-      rightContent,
-      leftContent,
-      startLineNumber,
-      endLineNumber,
-      targetPos,
-      targetPos + (endLineNumber - startLineNumber)
-    );
-
-    origEditor.setValue(updatedLeft);
-    setLeftFile((prev) => ({ ...prev, content: updatedLeft, isDirty: true }));
-    showToast(t.toasts.copiedSelectedToLeft);
-  }, [contextMenu, t, showToast]);
-
-  const getActiveContextMenuEditor = useCallback(() => {
-    if (!diffEditorRef.current) return null;
-    return contextMenu.side === 'left'
-      ? diffEditorRef.current.getOriginalEditor()
-      : diffEditorRef.current.getModifiedEditor();
-  }, [contextMenu.side]);
-
-  const handleUndo = useCallback(() => {
-    const ed = getActiveContextMenuEditor();
-    ed?.trigger('contextmenu', 'undo', null);
-    ed?.focus();
-  }, [getActiveContextMenuEditor]);
-
-  const handleRedo = useCallback(() => {
-    const ed = getActiveContextMenuEditor();
-    ed?.trigger('contextmenu', 'redo', null);
-    ed?.focus();
-  }, [getActiveContextMenuEditor]);
-
-  const handleCut = useCallback(() => {
-    const ed = getActiveContextMenuEditor();
-    ed?.focus();
-    document.execCommand('cut');
-  }, [getActiveContextMenuEditor]);
-
-  const handleCopy = useCallback(() => {
-    const ed = getActiveContextMenuEditor();
-    ed?.focus();
-    document.execCommand('copy');
-  }, [getActiveContextMenuEditor]);
-
-  const handlePaste = useCallback(async () => {
-    const ed = getActiveContextMenuEditor();
-    ed?.focus();
-    try {
-      const text = await navigator.clipboard.readText();
-      ed?.trigger('keyboard', 'type', { text });
-    } catch {
-      document.execCommand('paste');
-    }
-  }, [getActiveContextMenuEditor]);
-
-  const handleSelectAll = useCallback(() => {
-    const ed = getActiveContextMenuEditor();
-    ed?.trigger('contextmenu', 'editor.action.selectAll', null);
-    ed?.focus();
-  }, [getActiveContextMenuEditor]);
-
-  // Global Keyboard Shortcuts (Ctrl+S, F7 / Shift+F7, Alt+Right/Left, F4)
+  // Dev-only helper for browser verification of folder comparison
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S / Cmd+S: Save current modified file
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        if (rightFile.isDirty) {
-          handleSave('right');
-        } else if (leftFile.isDirty) {
-          handleSave('left');
-        } else {
-          handleSave('right');
-        }
-      }
+    if (import.meta.env.DEV) {
+      (window as any).__loadSampleFolderCompare = () => {
+        const demoLeft: FileEntry[] = [
+          { path: 'manifest.json', name: 'manifest.json', size: 1024, lastModified: 1729330000000 },
+          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
+          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
+          { path: 'dist/manifest.json', name: 'manifest.json', size: 850, lastModified: 1729330000000 },
+          { path: 'dist/assets/app.js', name: 'app.js', size: 12048, lastModified: 1729330000000 },
+          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
+        ];
+        const demoRight: FileEntry[] = [
+          { path: 'manifest.json', name: 'manifest.json', size: 1080, lastModified: 1729331000000 },
+          { path: 'package.json', name: 'package.json', size: 2048, lastModified: 1729330000000 },
+          { path: 'dist/index.html', name: 'index.html', size: 4096, lastModified: 1729330000000 },
+          { path: 'dist/manifest.json', name: 'manifest.json', size: 920, lastModified: 1729332000000 },
+          { path: 'dist/assets/app.js', name: 'app.js', size: 13000, lastModified: 1729331500000 },
+          { path: 'dist/新規 テキスト ドキュメント.txt', name: '新規 テキスト ドキュメント.txt', size: 120, lastModified: 1729332000000 },
+          { path: 'src/App.tsx', name: 'App.tsx', size: 5000, lastModified: 1729330000000 },
+        ];
+        setLeftFolderName('freelandre1');
+        setRightFolderName('freelandre2');
+        setLeftEntries(demoLeft);
+        setRightEntries(demoRight);
 
-      // Alt+ArrowRight: Copy chunk to right
-      if (e.altKey && e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleCopyChunkToRight();
-      }
+        const folderTabId = 'folder-diff';
+        const folderTab: AppTab = {
+          id: folderTabId,
+          type: 'folder',
+          title: 'freelandre1 ↔ freelandre2',
+          canClose: false,
+        };
+        setTabs((prev) => {
+          const exists = prev.some((t) => t.id === folderTabId);
+          if (exists) return prev.map((t) => (t.id === folderTabId ? folderTab : t));
+          return [folderTab, ...prev];
+        });
+        setActiveTabId(folderTabId);
+      };
 
-      // Alt+ArrowLeft: Copy chunk to left
-      if (e.altKey && e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handleCopyChunkToLeft();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('demo') === 'folder' || params.get('loadSample') === 'true') {
+        (window as any).__loadSampleFolderCompare();
       }
-
-      // F7 or F4 or Ctrl+Down: Next Diff
-      if (
-        (e.key === 'F7' && !e.shiftKey) ||
-        (e.key === 'F4' && !e.shiftKey) ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown')
-      ) {
-        e.preventDefault();
-        handleNextDiff();
-      }
-
-      // Shift+F7 or Shift+F4 or Ctrl+Up: Previous Diff
-      if (
-        (e.key === 'F7' && e.shiftKey) ||
-        (e.key === 'F4' && e.shiftKey) ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp')
-      ) {
-        e.preventDefault();
-        handlePrevDiff();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    leftFile,
-    rightFile,
-    handleNextDiff,
-    handlePrevDiff,
-    handleCopyChunkToRight,
-    handleCopyChunkToLeft,
-  ]);
+    }
+  }, [setTabs, setActiveTabId]);
 
   return (
     <div className="app-container">
-      {/* Hidden inputs for single file selection */}
+      {/* Hidden file input fallbacks */}
       <input
         type="file"
         ref={leftFileInputRef}
@@ -1316,8 +819,6 @@ export const App: React.FC = () => {
         style={{ display: 'none' }}
         onChange={(e) => handleFileInputChange(e, 'right')}
       />
-
-      {/* Hidden inputs for fallback directory upload */}
       <input
         type="file"
         ref={leftDirInputRef}
@@ -1336,239 +837,47 @@ export const App: React.FC = () => {
       />
 
       {/* Header */}
-      <header className="app-header">
-        <div className="brand-section">
-          <div className="brand-logo">
-            <ArrowRightLeft size={20} />
-            <span>{t.app.title}</span>
-          </div>
-          <span className="brand-badge">{t.app.tagline}</span>
-        </div>
-
-        <div className="stats-section">
-          <div className="stat-item">
-            <ShieldCheck size={14} color="#10b981" />
-            <span>{t.app.zeroServer}</span>
-          </div>
-          <div className="stat-item">
-            {activeTab?.type === 'folder' ? (
-              diffResult.summary.modified + diffResult.summary.leftOnly + diffResult.summary.rightOnly === 0 ? (
-                <span className="stat-diff-tag equal">
-                  <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-                  {t.app.noDiff}
-                </span>
-              ) : (
-                <span className="stat-diff-tag different">
-                  <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
-                  {diffResult.summary.modified + diffResult.summary.leftOnly + diffResult.summary.rightOnly} {t.app.hasDiff}
-                </span>
-              )
-            ) : isMatch ? (
-              <span className="stat-diff-tag equal">
-                <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-                {t.app.noDiff}
-              </span>
-            ) : (
-              <span className="stat-diff-tag different">
-                <AlertCircle size={13} style={{ display: 'inline', marginRight: 4 }} />
-                {t.app.hasDiff}
-              </span>
-            )}
-          </div>
-
-          {/* Language Toggle */}
-          <button
-            className="btn-secondary"
-            style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-            onClick={() => setLocale(locale === 'en' ? 'ja' : 'en')}
-            title="Switch Language / 言語切り替え"
-          >
-            <Languages size={13} />
-            <span>{locale === 'en' ? 'JA' : 'EN'}</span>
-          </button>
-        </div>
-      </header>
+      <AppHeader
+        isFolderTab={activeTab?.type === 'folder'}
+        folderDiffCount={folderDiffCount}
+        isFileMatch={isMatch}
+        locale={locale}
+        onToggleLocale={() => setLocale(locale === 'en' ? 'ja' : 'en')}
+      />
 
       {/* Toolbar */}
-      {/* Toolbar */}
-      <div className="app-toolbar">
-        {/* Comparison Initiation */}
-        <div className="toolbar-group">
-          <button
-            className="btn-primary"
-            onClick={() => setIsOpenDialogOpen(true)}
-            title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
-            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <FilePlus2 size={14} /> {t.toolbar.newCompare}
-          </button>
-        </div>
-
-        {activeTab?.type === 'folder' ? (
-          <div className="toolbar-group" style={{ flex: 1, justifyContent: 'flex-start' }}>
-            <button
-              className="btn-secondary"
-              onClick={handleExecuteFolderCompare}
-              disabled={isScanning || (!leftDirHandle && !leftFallbackFiles) || (!rightDirHandle && !rightFallbackFiles)}
-              title={t.folderTable.rescan}
-            >
-              <RefreshCw size={14} className={isScanning ? 'spin' : ''} /> {t.folderTable.rescan}
-            </button>
-            <div className="file-pane-info">
-              <FolderTree size={14} color="#60a5fa" />
-              <button
-                style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
-                onClick={() => handleOpenFolder('left')}
-                title={t.toolbar.openLeft}
-              >
-                {leftFolderName || 'Left Folder'}
-              </button>
-              <span style={{ color: '#94a3b8', margin: '0 4px' }}>↔</span>
-              <button
-                style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
-                onClick={() => handleOpenFolder('right')}
-                title={t.toolbar.openRight}
-              >
-                {rightFolderName || 'Right Folder'}
-              </button>
-            </div>
-            <button
-              className="btn-secondary"
-              onClick={handleResetFolderCompare}
-              title="Reset"
-              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
-            >
-              Reset
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Left File Controls */}
-            <div className="toolbar-group">
-              <button className="btn-secondary" onClick={() => handleOpenFile('left')}>
-                <FolderOpen size={14} /> {t.toolbar.openLeft}
-              </button>
-              <div className="file-pane-info" title={leftFile.path || leftFile.name}>
-                <FileText size={14} color="#60a5fa" />
-                <span className="file-name-text">{leftFile.name}</span>
-                {leftFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
-                {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
-              </div>
-              <button
-                className="btn-success"
-                onClick={() => handleSave('left')}
-                disabled={leftFile.readOnly}
-                title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
-              >
-                <Save size={14} /> {t.toolbar.saveLeft}
-              </button>
-            </div>
-
-            {/* Merge Actions */}
-            <div className="toolbar-group">
-              <button
-                className="btn-secondary"
-                onClick={() => handleMerge('rightToLeft')}
-                title={t.toolbar.mergeToLeftTitle}
-              >
-                <ArrowLeft size={14} /> {t.toolbar.mergeToLeft}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={() => handleMerge('leftToRight')}
-                title={t.toolbar.mergeToRightTitle}
-              >
-                {t.toolbar.mergeToRight} <ArrowRight size={14} />
-              </button>
-            </div>
-
-            {/* Diff Navigation */}
-            <div className="toolbar-group">
-              <button
-                className="btn-secondary"
-                onClick={handlePrevDiff}
-                title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
-              >
-                <ChevronUp size={14} /> {t.toolbar.prevDiff}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={handleNextDiff}
-                title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
-              >
-                {t.toolbar.nextDiff} <ChevronDown size={14} />
-              </button>
-            </div>
-
-            {/* Right File Controls */}
-            <div className="toolbar-group">
-              <button
-                className="btn-success"
-                onClick={() => handleSave('right')}
-                disabled={rightFile.readOnly}
-                title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
-              >
-                <Save size={14} /> {t.toolbar.saveRight}
-              </button>
-              <div className="file-pane-info" title={rightFile.path || rightFile.name}>
-                <FileText size={14} color="#38bdf8" />
-                <span className="file-name-text">{rightFile.name}</span>
-                {rightFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
-                {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
-              </div>
-              <button className="btn-secondary" onClick={() => handleOpenFile('right')}>
-                <FolderOpen size={14} /> {t.toolbar.openRight}
-              </button>
-            </div>
-
-            {/* Comparison Options */}
-            <div className="toolbar-group">
-              <button
-                className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
-                onClick={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
-                title={t.toolbar.ignoreWhitespace}
-              >
-                {t.toolbar.ignoreWhitespace}: {ignoreTrimWhitespace ? t.toolbar.on : t.toolbar.off}
-              </button>
-              <button
-                className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
-                onClick={() =>
-                  setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
-                }
-                title={t.toolbar.ignoreLineEndings}
-              >
-                {t.toolbar.ignoreLineEndings}: {normalizeOptions.ignoreLineEndings ? t.toolbar.on : t.toolbar.off}
-              </button>
-              <button
-                className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
-                onClick={() => setRenderSideBySide(!renderSideBySide)}
-                title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
-              >
-                {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
-                {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
-              </button>
-            </div>
-
-            {/* Export Actions */}
-            <div className="toolbar-group">
-              <button
-                className="btn-secondary"
-                onClick={handleExportHtmlReport}
-                title={t.toolbar.exportTitle}
-              >
-                <FileCode size={14} /> {t.toolbar.exportReport}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={handleExportPatch}
-                title={t.toolbar.exportTitle}
-              >
-                <Download size={14} /> {t.toolbar.exportPatch}
-              </button>
-            </div>
-          </>
+      <AppToolbar
+        isFolderTab={activeTab?.type === 'folder'}
+        onOpenNewCompare={() => setIsOpenDialogOpen(true)}
+        leftFolderName={leftFolderName}
+        rightFolderName={rightFolderName}
+        isScanning={isScanning}
+        canCompareFolder={Boolean(
+          (leftDirHandle || (leftFallbackFiles && leftFallbackFiles.length > 0)) &&
+          (rightDirHandle || (rightFallbackFiles && rightFallbackFiles.length > 0))
         )}
-      </div>
+        onRescanFolder={handleExecuteFolderCompare}
+        onOpenLeftFolder={() => handleOpenFolder('left')}
+        onOpenRightFolder={() => handleOpenFolder('right')}
+        onResetFolder={handleResetFolderCompare}
+        leftFile={leftFile}
+        rightFile={rightFile}
+        onOpenFile={handleOpenFile}
+        onSaveFile={handleSave}
+        onMerge={handleMerge}
+        onPrevDiff={handlePrevDiff}
+        onNextDiff={handleNextDiff}
+        ignoreTrimWhitespace={ignoreTrimWhitespace}
+        onToggleIgnoreTrimWhitespace={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
+        normalizeOptions={normalizeOptions}
+        onToggleIgnoreLineEndings={() =>
+          setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
+        }
+        renderSideBySide={renderSideBySide}
+        onToggleRenderSideBySide={() => setRenderSideBySide(!renderSideBySide)}
+        onExportHtmlReport={handleExportHtmlReport}
+        onExportPatch={handleExportPatch}
+      />
 
       {/* MDI Tab Bar */}
       <TabBar
@@ -1592,116 +901,28 @@ export const App: React.FC = () => {
           onOpenFileDiff={handleOpenFileDiffFromTable}
         />
       ) : (
-        <main className="editor-main">
-          {/* Left Drop Zone */}
-          <div
-            className={`drop-side ${dragSide === 'left' ? 'dragover' : ''}`}
-            style={{ display: dragSide === 'left' ? 'flex' : 'none', position: 'absolute', left: 0, width: '50%', height: '80%', zIndex: 50 }}
-            onDragOver={(e) => handleDragOver(e, 'left')}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, 'left')}
-          >
-            <FolderOpen size={48} color="#60a5fa" />
-            <h3>{t.dropzone.dropLeft}</h3>
-          </div>
-
-          {/* Right Drop Zone */}
-          <div
-            className={`drop-side ${dragSide === 'right' ? 'dragover' : ''}`}
-            style={{ display: dragSide === 'right' ? 'flex' : 'none', position: 'absolute', right: 0, width: '50%', height: '80%', zIndex: 50 }}
-            onDragOver={(e) => handleDragOver(e, 'right')}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, 'right')}
-          >
-            <FolderOpen size={48} color="#38bdf8" />
-            <h3>{t.dropzone.dropRight}</h3>
-          </div>
-
-          <div
-            className="diff-wrapper"
-            onDragOver={(e) => {
-              e.preventDefault();
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              if (x < rect.width / 2) {
-                setDragSide('left');
-              } else {
-                setDragSide('right');
-              }
-            }}
-          >
-            {isImageFileName(leftFile.name) || isImageFileName(rightFile.name) ? (
-              <ImageDiffViewer
-                leftName={leftFile.name}
-                leftSrc={leftFile.imageUrl}
-                leftSize={leftFile.size}
-                rightName={rightFile.name}
-                rightSrc={rightFile.imageUrl}
-                rightSize={rightFile.size}
-              />
-            ) : (
-              <DiffEditor
-                height="100%"
-                language={language}
-                original={leftFile.content}
-                modified={rightFile.content}
-                beforeMount={handleEditorBeforeMount}
-                onMount={handleEditorDidMount}
-                theme="vs-dark"
-                options={{
-                  readOnly: rightFile.readOnly ?? false,
-                  originalEditable: !(leftFile.readOnly ?? false),
-                  renderSideBySide,
-                  ignoreTrimWhitespace,
-                  automaticLayout: true,
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
-                  minimap: { enabled: true },
-                  scrollBeyondLastLine: false,
-                  diffCodeLens: true,
-                  contextmenu: false,
-                }}
-              />
-            )}
-          </div>
-        </main>
+        <FileDiffWorkspace
+          leftFile={leftFile}
+          rightFile={rightFile}
+          language={language}
+          renderSideBySide={renderSideBySide}
+          ignoreTrimWhitespace={ignoreTrimWhitespace}
+          onEditorBeforeMount={handleEditorBeforeMount}
+          onEditorDidMount={handleEditorDidMount}
+          onDropItem={handleDropFile}
+        />
       )}
 
       {/* File Diff Status Bar */}
       {activeTab?.type === 'file' && (
-        <footer className="app-statusbar">
-          <div className="statusbar-group">
-            <span className="statusbar-item">
-              {t.statusbar.path} <strong>{leftFile.path || leftFile.name}</strong>
-            </span>
-            <span className="statusbar-item">
-              {t.statusbar.language} <strong>{language}</strong>
-            </span>
-            <span className="statusbar-item">
-              {t.statusbar.encoding}{' '}
-              <strong>
-                {leftFile.encoding && rightFile.encoding && leftFile.encoding !== rightFile.encoding
-                  ? `L:${formatEncodingLabel(leftFile.encoding)} | R:${formatEncodingLabel(rightFile.encoding)}`
-                  : formatEncodingLabel(leftFile.encoding || rightFile.encoding)}
-              </strong>
-            </span>
-            <span className="statusbar-item">
-              {t.statusbar.directSave} <strong>{isFileSystemAccessSupported() ? t.statusbar.enabled : t.statusbar.fallback}</strong>
-            </span>
-          </div>
-
-          <div className="statusbar-group">
-            <span className="statusbar-item">
-              {t.statusbar.left} {leftFile.content.split('\n').length} {t.statusbar.lines} ({leftFile.size} {t.statusbar.bytes})
-            </span>
-            <span className="statusbar-item">
-              {t.statusbar.right} {rightFile.content.split('\n').length} {t.statusbar.lines} ({rightFile.size} {t.statusbar.bytes})
-            </span>
-          </div>
-        </footer>
+        <AppStatusBar
+          leftFile={leftFile}
+          rightFile={rightFile}
+          language={language}
+        />
       )}
 
-      {/* Custom WinMerge-style Context Menu */}
+      {/* Custom Context Menu */}
       {contextMenu.visible && (
         <DiffContextMenu
           x={contextMenu.x}
@@ -1725,7 +946,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Floating WinMerge-style Open & Compare Dialog */}
+      {/* Floating Open & Compare Dialog */}
       <OpenDialog
         isOpen={isOpenDialogOpen}
         onClose={() => setIsOpenDialogOpen(false)}
