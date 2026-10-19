@@ -19,6 +19,9 @@
   padding: 8px 16px;
   background-color: #202024;
   border-bottom: 1px solid var(--border-subtle);
+  min-height: 84px;
+  box-sizing: border-box;
+  justify-content: center;
 }
 
 .folder-paths-indicator {

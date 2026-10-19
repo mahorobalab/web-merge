@@ -140,8 +140,6 @@ export const App: React.FC = () => {
     setRightFolderName,
     leftDirHandle,
     rightDirHandle,
-    leftFallbackFiles,
-    rightFallbackFiles,
     leftEntries,
     rightEntries,
     setLeftEntries,
@@ -150,10 +148,8 @@ export const App: React.FC = () => {
     scanProgressText,
     diffResult,
     folderDiffCount,
-    handleOpenFolder,
     handleDirInputChange,
     handleExecuteFolderCompare,
-    handleResetFolderCompare,
     handleOpenFileDiffFromTable,
     handleCompareFoldersFromDialog,
   } = useFolderCompare({
@@ -563,41 +559,6 @@ export const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Toolbar */}
-      <AppToolbar
-        hasActiveTab={Boolean(activeTab)}
-        isFolderTab={activeTab?.type === 'folder'}
-        onOpenNewCompare={() => setIsOpenDialogOpen(true)}
-        leftFolderName={leftFolderName}
-        rightFolderName={rightFolderName}
-        isScanning={isScanning}
-        canCompareFolder={Boolean(
-          (leftDirHandle || (leftFallbackFiles && leftFallbackFiles.length > 0)) &&
-          (rightDirHandle || (rightFallbackFiles && rightFallbackFiles.length > 0))
-        )}
-        onRescanFolder={handleExecuteFolderCompare}
-        onOpenLeftFolder={() => handleOpenFolder('left')}
-        onOpenRightFolder={() => handleOpenFolder('right')}
-        onResetFolder={handleResetFolderCompare}
-        leftFile={leftFile}
-        rightFile={rightFile}
-        onOpenFile={handleOpenFile}
-        onSaveFile={handleSave}
-        onMerge={handleMerge}
-        onPrevDiff={handlePrevDiff}
-        onNextDiff={handleNextDiff}
-        ignoreTrimWhitespace={ignoreTrimWhitespace}
-        onToggleIgnoreTrimWhitespace={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
-        normalizeOptions={normalizeOptions}
-        onToggleIgnoreLineEndings={() =>
-          setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
-        }
-        renderSideBySide={renderSideBySide}
-        onToggleRenderSideBySide={() => setRenderSideBySide(!renderSideBySide)}
-        onExportHtmlReport={handleExportHtmlReport}
-        onExportPatch={handleExportPatch}
-      />
-
       {/* MDI Tab Bar */}
       <TabBar
         tabs={tabs}
@@ -625,19 +586,42 @@ export const App: React.FC = () => {
           onOpenFileDiff={handleOpenFileDiffFromTable}
           onCopyItem={handleCopyFolderItem}
           onDeleteItem={handleDeleteFolderItem}
+          onOpenNewCompare={() => setIsOpenDialogOpen(true)}
         />
       ) : (
-        <FileDiffWorkspace
-          leftFile={leftFile}
-          rightFile={rightFile}
-          language={language}
-          renderSideBySide={renderSideBySide}
-          ignoreTrimWhitespace={ignoreTrimWhitespace}
-          onEditorBeforeMount={handleEditorBeforeMount}
-          onEditorDidMount={handleEditorDidMount}
-          onDropItem={handleDropFile}
-          theme={theme}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <AppToolbar
+            onOpenNewCompare={() => setIsOpenDialogOpen(true)}
+            leftFile={leftFile}
+            rightFile={rightFile}
+            onOpenFile={handleOpenFile}
+            onSaveFile={handleSave}
+            onMerge={handleMerge}
+            onPrevDiff={handlePrevDiff}
+            onNextDiff={handleNextDiff}
+            ignoreTrimWhitespace={ignoreTrimWhitespace}
+            onToggleIgnoreTrimWhitespace={() => setIgnoreTrimWhitespace(!ignoreTrimWhitespace)}
+            normalizeOptions={normalizeOptions}
+            onToggleIgnoreLineEndings={() =>
+              setNormalizeOptions((prev) => ({ ...prev, ignoreLineEndings: !prev.ignoreLineEndings }))
+            }
+            renderSideBySide={renderSideBySide}
+            onToggleRenderSideBySide={() => setRenderSideBySide(!renderSideBySide)}
+            onExportHtmlReport={handleExportHtmlReport}
+            onExportPatch={handleExportPatch}
+          />
+          <FileDiffWorkspace
+            leftFile={leftFile}
+            rightFile={rightFile}
+            language={language}
+            renderSideBySide={renderSideBySide}
+            ignoreTrimWhitespace={ignoreTrimWhitespace}
+            onEditorBeforeMount={handleEditorBeforeMount}
+            onEditorDidMount={handleEditorDidMount}
+            onDropItem={handleDropFile}
+            theme={theme}
+          />
+        </div>
       )}
 
       {/* File Diff Status Bar */}

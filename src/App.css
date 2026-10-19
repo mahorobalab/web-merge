@@ -75,14 +75,48 @@
 /* Toolbar */
 .app-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
+  flex-direction: column;
+  padding: 8px 16px;
   background-color: #202023;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 0.85rem;
-  flex-wrap: wrap;
   gap: 8px;
+  min-height: 84px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+[data-theme='light'] .app-toolbar {
+  background-color: #f1f5f9;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.app-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--border-subtle);
+  margin: 0 4px;
+}
+
+.ro-badge {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  background: #334155;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+[data-theme='light'] .ro-badge {
+  background: #e2e8f0;
+  color: #64748b;
 }
 
 .toolbar-group {
