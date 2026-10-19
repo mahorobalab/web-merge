@@ -109,6 +109,12 @@ export const en = {
     filterPrompt: 'Filter...',
     openFileHint: 'Double-click to open in file comparison tab',
     expandFolderHint: 'Double-click to expand or collapse folder',
+    copyToRight: 'Copy to Right',
+    copyToLeft: 'Copy to Left',
+    deleteItem: 'Delete',
+    deleteLeft: 'Delete Left',
+    deleteRight: 'Delete Right',
+    deleteBoth: 'Delete Both',
   },
   tabs: {
     folderCompare: (left: string, right: string) => `${left} ↔ ${right}`,
@@ -156,6 +162,14 @@ export const en = {
     saveError: (msg: string) => `Failed to save: ${msg}`,
     conflictConfirm: 'File was modified externally (e.g. by another editor or Git)!\nOverwrite anyway?',
   },
+  confirmModal: {
+    confirmTitle: 'Delete Item',
+    deleteWarning: 'This action cannot be undone.',
+    confirmDelete: (name: string, side: string) => `Are you sure you want to delete "${name}" (${side})?`,
+    cancel: 'Cancel',
+    delete: 'Delete',
+  },
 };
 
 export type Translations = typeof en;
+

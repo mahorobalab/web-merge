@@ -111,6 +111,12 @@ export const ja: Translations = {
     filterPrompt: 'フィルター...',
     openFileHint: 'ダブルクリックでファイル比較タブを開く',
     expandFolderHint: 'ダブルクリックでフォルダを展開/折りたたみ',
+    copyToRight: '右へコピー',
+    copyToLeft: '左へコピー',
+    deleteItem: '削除',
+    deleteLeft: '左側を削除',
+    deleteRight: '右側を削除',
+    deleteBoth: '両側を削除',
   },
   tabs: {
     folderCompare: (left: string, right: string) => `${left} ↔ ${right}`,
@@ -158,4 +164,12 @@ export const ja: Translations = {
     saveError: (msg: string) => `保存に失敗しました: ${msg}`,
     conflictConfirm: 'ファイルが外部ツール（エディタやGitなど）によって変更されています！\n上書きしますか？',
   },
+  confirmModal: {
+    confirmTitle: 'アイテムの削除',
+    deleteWarning: 'この操作は元に戻せません。',
+    confirmDelete: (name: string, side: string) => `本当に「${name}」(${side}) を削除しますか？`,
+    cancel: 'キャンセル',
+    delete: '削除',
+  },
 };
+

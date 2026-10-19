@@ -8,6 +8,9 @@ import {
   Search,
   RefreshCw,
   CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import type { DiffItem, DiffSummary } from '../utils/diffMatcher';
 import {
@@ -16,7 +19,10 @@ import {
   type FolderTreeNode,
 } from '../utils/folderTreeBuilder';
 import { useTranslation } from '../i18n/I18nContext';
+import { FolderContextMenu } from './FolderContextMenu';
+import { ConfirmModal } from './ConfirmModal';
 import './FolderDiffTableView.css';
+
 
 export interface FolderDiffTableViewProps {
   leftFolderName: string;
@@ -27,6 +33,8 @@ export interface FolderDiffTableViewProps {
   scanProgressText?: string;
   onRescan: () => void;
   onOpenFileDiff: (item: DiffItem) => void;
+  onCopyItem?: (node: FolderTreeNode, direction: 'leftToRight' | 'rightToLeft') => void;
+  onDeleteItem?: (node: FolderTreeNode, side: 'left' | 'right' | 'both') => void;
 }
 
 type FilterType = 'all' | 'diffs' | 'modified' | 'left-only' | 'right-only' | 'identical';
@@ -54,12 +62,24 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
   scanProgressText,
   onRescan,
   onOpenFileDiff,
+  onCopyItem,
+  onDeleteItem,
 }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    node: FolderTreeNode;
+    side: 'left' | 'right' | 'both';
+  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    node: FolderTreeNode | null;
+  }>({ visible: false, x: 0, y: 0, node: null });
 
   // Set of expanded folder paths
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
@@ -133,6 +153,26 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
       return true;
     });
   }, [fullTree, expandedPaths, searchQuery, filterType]);
+
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return visibleNodes.find((n) => n.id === selectedNodeId) || null;
+  }, [visibleNodes, selectedNodeId]);
+
+  const selectedHasLeft = Boolean(
+    selectedNode &&
+      (selectedNode.leftSize !== undefined ||
+        selectedNode.status === 'left-only' ||
+        selectedNode.status === 'modified' ||
+        selectedNode.status === 'identical')
+  );
+  const selectedHasRight = Boolean(
+    selectedNode &&
+      (selectedNode.rightSize !== undefined ||
+        selectedNode.status === 'right-only' ||
+        selectedNode.status === 'modified' ||
+        selectedNode.status === 'identical')
+  );
 
   // Row double click handler
   const handleRowDoubleClick = (node: FolderTreeNode) => {
@@ -227,6 +267,51 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
             </button>
           </div>
 
+          {selectedNode && (
+            <div className="selected-sync-actions">
+              <button
+                type="button"
+                className="sync-action-btn"
+                disabled={!selectedHasLeft || !onCopyItem}
+                onClick={() => onCopyItem?.(selectedNode, 'leftToRight')}
+                title={t.folderTable.copyToRight}
+              >
+                <ArrowRight size={13} color="#60a5fa" />
+                <span>{t.folderTable.copyToRight}</span>
+              </button>
+
+              <button
+                type="button"
+                className="sync-action-btn"
+                disabled={!selectedHasRight || !onCopyItem}
+                onClick={() => onCopyItem?.(selectedNode, 'rightToLeft')}
+                title={t.folderTable.copyToLeft}
+              >
+                <ArrowLeft size={13} color="#60a5fa" />
+                <span>{t.folderTable.copyToLeft}</span>
+              </button>
+
+              <button
+                type="button"
+                className="sync-action-btn danger"
+                disabled={!onDeleteItem}
+                onClick={() => {
+                  if (selectedHasLeft && selectedHasRight) {
+                    setDeleteTarget({ node: selectedNode, side: 'both' });
+                  } else if (selectedHasLeft) {
+                    setDeleteTarget({ node: selectedNode, side: 'left' });
+                  } else if (selectedHasRight) {
+                    setDeleteTarget({ node: selectedNode, side: 'right' });
+                  }
+                }}
+                title={t.folderTable.deleteItem}
+              >
+                <Trash2 size={13} color="#ef4444" />
+                <span>{t.folderTable.deleteItem}</span>
+              </button>
+            </div>
+          )}
+
           <div className="folder-search-box">
             <Search size={13} className="search-icon" />
             <input
@@ -293,6 +378,16 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
                     className={`diff-table-row status-${node.status} ${node.isFolder ? 'folder-row' : 'file-row'} ${isSelected ? 'selected' : ''}`}
                     onClick={() => setSelectedNodeId(node.id)}
                     onDoubleClick={() => handleRowDoubleClick(node)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setSelectedNodeId(node.id);
+                      setContextMenu({
+                        visible: true,
+                        x: e.clientX,
+                        y: e.clientY,
+                        node,
+                      });
+                    }}
                     title={node.isFolder ? t.folderTable.expandFolderHint : t.folderTable.openFileHint}
                   >
                     {/* Name column with tree indent & chevron */}
@@ -379,6 +474,49 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
           <span>{t.folderTable.itemsCount(visibleNodes.length, diffCount)}</span>
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.visible && contextMenu.node && (
+        <FolderContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          node={contextMenu.node}
+          onCopyToRight={() => onCopyItem?.(contextMenu.node!, 'leftToRight')}
+          onCopyToLeft={() => onCopyItem?.(contextMenu.node!, 'rightToLeft')}
+          onDeleteLeft={() => setDeleteTarget({ node: contextMenu.node!, side: 'left' })}
+          onDeleteRight={() => setDeleteTarget({ node: contextMenu.node!, side: 'right' })}
+          onDeleteBoth={() => setDeleteTarget({ node: contextMenu.node!, side: 'both' })}
+          onOpenFileDiff={contextMenu.node.item ? () => onOpenFileDiff(contextMenu.node!.item!) : undefined}
+          onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <ConfirmModal
+          isOpen={Boolean(deleteTarget)}
+          title={t.confirmModal.confirmTitle}
+          message={t.confirmModal.confirmDelete(
+            deleteTarget.node.name,
+            deleteTarget.side === 'left'
+              ? (locale === 'ja' ? '左側' : 'Left')
+              : deleteTarget.side === 'right'
+              ? (locale === 'ja' ? '右側' : 'Right')
+              : (locale === 'ja' ? '両側' : 'Both')
+          )}
+          warningNote={t.confirmModal.deleteWarning}
+          confirmLabel={t.confirmModal.delete}
+          cancelLabel={t.confirmModal.cancel}
+          isDanger
+          onConfirm={() => {
+            if (deleteTarget && onDeleteItem) {
+              onDeleteItem(deleteTarget.node, deleteTarget.side);
+            }
+            setDeleteTarget(null);
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 };

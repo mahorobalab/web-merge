@@ -250,6 +250,53 @@
   animation: spin 1s linear infinite;
 }
 
+/* Selected row sync actions in toolbar */
+.selected-sync-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(24, 24, 27, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px 4px;
+  height: 32px;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.15s ease;
+}
+
+.sync-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.sync-action-btn:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.sync-action-btn.danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.sync-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Scan Progress Banner */
 .table-scan-progress {
   display: flex;

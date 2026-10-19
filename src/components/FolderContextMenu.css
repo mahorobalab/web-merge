@@ -1,0 +1,88 @@
+.folder-context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  background-color: rgba(30, 30, 35, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  user-select: none;
+  font-size: 0.82rem;
+  animation: fadeIn 0.1s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.folder-context-menu .menu-header {
+  padding: 6px 10px 4px 10px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-context-menu .menu-node-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.folder-context-menu .menu-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 4px 2px;
+}
+
+.folder-context-menu .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.1s ease;
+}
+
+.folder-context-menu .menu-item:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #ffffff;
+}
+
+.folder-context-menu .menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.folder-context-menu .menu-item.danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.folder-context-menu .menu-icon {
+  flex-shrink: 0;
+}
+
+.folder-context-menu .menu-icon.text-blue {
+  color: #60a5fa;
+}
+
+.folder-context-menu .menu-icon.text-red {
+  color: #ef4444;
+}

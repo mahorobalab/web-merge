@@ -24,6 +24,7 @@ import type { FileState, Toast, AppTab } from './types/app';
 import { useTabs } from './hooks/useTabs';
 import { useDiffEditorMerge } from './hooks/useDiffEditorMerge';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
+import { useFolderSync } from './hooks/useFolderSync';
 
 // Components
 import { AppHeader } from './components/AppHeader';
@@ -139,6 +140,18 @@ export const App: React.FC = () => {
   const [rightEntries, setRightEntries] = useState<FileEntry[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgressText, setScanProgressText] = useState<string>('');
+
+  // Folder synchronization hook (copy / delete directly between left & right folders)
+  const { handleCopyFolderItem, handleDeleteFolderItem } = useFolderSync({
+    leftDirHandle,
+    rightDirHandle,
+    leftEntries,
+    rightEntries,
+    setLeftEntries,
+    setRightEntries,
+    showToast,
+    locale,
+  });
 
   // Aggregated directory diff results
   const diffResult = useMemo<{ items: DiffItem[]; summary: DiffSummary }>(() => {
@@ -904,6 +917,8 @@ export const App: React.FC = () => {
           scanProgressText={scanProgressText}
           onRescan={handleExecuteFolderCompare}
           onOpenFileDiff={handleOpenFileDiffFromTable}
+          onCopyItem={handleCopyFolderItem}
+          onDeleteItem={handleDeleteFolderItem}
         />
       ) : (
         <FileDiffWorkspace
