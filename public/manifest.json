@@ -1,0 +1,19 @@
+{
+  "name": "WebMerge | Local-First Diff & Merge Tool",
+  "short_name": "WebMerge",
+  "description": "Installation-free, browser-native file and folder diff/merge tool with direct file saving and zero server communication.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#18181b",
+  "theme_color": "#0284c7",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
