@@ -17,6 +17,8 @@ import {
   Languages,
   ChevronDown,
   ChevronUp,
+  FileCode,
+  Download,
 } from 'lucide-react';
 
 import {
@@ -29,6 +31,7 @@ import {
 } from './core/fileStorage';
 import type { OpenedFile } from './core/fileStorage';
 import { formatEncodingLabel, type SupportedEncoding } from './utils/encodingDetector';
+import { generateUnifiedDiff, generateHtmlReport } from './utils/diffExporter';
 import { openDirectoryWithPicker, parseFileList } from './core/directoryScanner';
 import { scanFolderAsync } from './core/workerClient';
 import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } from './utils/diffMatcher';
@@ -451,6 +454,44 @@ export const App: React.FC = () => {
     }
   };
 
+  // Export handlers
+  const handleExportHtmlReport = () => {
+    const leftContent =
+      diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
+    const rightContent =
+      diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
+
+    const html = generateHtmlReport({
+      leftTitle: leftFile.path || leftFile.name,
+      rightTitle: rightFile.path || rightFile.name,
+      leftContent,
+      rightContent,
+      language,
+    });
+
+    const reportName = `webmerge_report_${Date.now()}.html`;
+    downloadFileContent(reportName, html);
+    showToast(t.toasts.exportedReport(reportName));
+  };
+
+  const handleExportPatch = () => {
+    const leftContent =
+      diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
+    const rightContent =
+      diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
+
+    const patch = generateUnifiedDiff(
+      leftFile.path || leftFile.name,
+      rightFile.path || rightFile.name,
+      leftContent,
+      rightContent
+    );
+
+    const patchName = `webmerge_diff_${Date.now()}.patch`;
+    downloadFileContent(patchName, patch);
+    showToast(t.toasts.exportedPatch(patchName));
+  };
+
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent, side: 'left' | 'right') => {
     e.preventDefault();
@@ -711,6 +752,24 @@ export const App: React.FC = () => {
           >
             {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
             {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
+          </button>
+        </div>
+
+        {/* Export Actions */}
+        <div className="toolbar-group">
+          <button
+            className="btn-secondary"
+            onClick={handleExportHtmlReport}
+            title={t.toolbar.exportTitle}
+          >
+            <FileCode size={14} /> {t.toolbar.exportReport}
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={handleExportPatch}
+            title={t.toolbar.exportTitle}
+          >
+            <Download size={14} /> {t.toolbar.exportPatch}
           </button>
         </div>
       </div>
