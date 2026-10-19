@@ -15,6 +15,7 @@ import {
   Rows,
   ShieldCheck,
   FolderTree,
+  FilePlus2,
   Languages,
   ChevronDown,
   ChevronUp,
@@ -39,6 +40,7 @@ import { matchFolderEntries, type DiffItem, type DiffSummary, type FileEntry } f
 import { FolderDiffPanel } from './components/FolderDiffPanel';
 import { ImageDiffViewer } from './components/ImageDiffViewer';
 import { DiffContextMenu } from './components/DiffContextMenu';
+import { OpenDialog } from './components/OpenDialog';
 import {
   copyChunkLeftToRight,
   copyChunkRightToLeft,
@@ -62,6 +64,7 @@ interface FileState {
   lastModified?: number;
   isDirty: boolean;
   size: number;
+  readOnly?: boolean;
 }
 
 interface ContextMenuState {
@@ -136,8 +139,11 @@ export const App: React.FC = () => {
     size: DEFAULT_RIGHT_DEMO.length,
   });
 
+  // Floating Open Dialog State
+  const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
+
   // Folder comparison states
-  const [showFolderPanel, setShowFolderPanel] = useState(true);
+  const [showFolderPanel, setShowFolderPanel] = useState(false);
   const [leftFolderName, setLeftFolderName] = useState<string>('');
   const [rightFolderName, setRightFolderName] = useState<string>('');
   const [leftDirHandle, setLeftDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -236,6 +242,18 @@ export const App: React.FC = () => {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
+  }, []);
+
+  // Global keyboard shortcut to open WinMerge compare dialog (Ctrl+O / Ctrl+N)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O' || e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        setIsOpenDialogOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Automatic syntax detection
@@ -425,6 +443,99 @@ export const App: React.FC = () => {
     if (leftDirInputRef.current) leftDirInputRef.current.value = '';
     if (rightDirInputRef.current) rightDirInputRef.current.value = '';
     showToast(t.toasts.resetSuccess, 'info');
+  };
+
+  // Open dialog handlers
+  const handleCompareFilesFromDialog = (
+    leftOpened: OpenedFile,
+    rightOpened: OpenedFile,
+    leftReadOnly: boolean,
+    rightReadOnly: boolean
+  ) => {
+    setLeftFile({
+      name: leftOpened.name,
+      content: leftOpened.content,
+      encoding: leftOpened.encoding,
+      imageUrl: leftOpened.imageUrl,
+      handle: leftOpened.handle,
+      lastModified: leftOpened.lastModified,
+      isDirty: false,
+      size: leftOpened.size,
+      readOnly: leftReadOnly,
+    });
+
+    setRightFile({
+      name: rightOpened.name,
+      content: rightOpened.content,
+      encoding: rightOpened.encoding,
+      imageUrl: rightOpened.imageUrl,
+      handle: rightOpened.handle,
+      lastModified: rightOpened.lastModified,
+      isDirty: false,
+      size: rightOpened.size,
+      readOnly: rightReadOnly,
+    });
+
+    setShowFolderPanel(false);
+    showToast(
+      locale === 'ja'
+        ? `ファイル比較を開始しました: "${leftOpened.name}" vs "${rightOpened.name}"`
+        : `Started file comparison: "${leftOpened.name}" vs "${rightOpened.name}"`,
+      'success'
+    );
+  };
+
+  const handleCompareFoldersFromDialog = async (
+    left: { name: string; handle?: FileSystemDirectoryHandle; fallbackFiles?: FileList },
+    right: { name: string; handle?: FileSystemDirectoryHandle; fallbackFiles?: FileList },
+    _leftReadOnly: boolean,
+    _rightReadOnly: boolean
+  ) => {
+    setLeftFolderName(left.name);
+    setRightFolderName(right.name);
+    setLeftDirHandle(left.handle || null);
+    setRightDirHandle(right.handle || null);
+    setLeftFallbackFiles(left.fallbackFiles || null);
+    setRightFallbackFiles(right.fallbackFiles || null);
+    setShowFolderPanel(true);
+
+    setIsScanning(true);
+    setScanProgressText(t.folderPanel.scanning);
+
+    try {
+      let newLeftEntries: FileEntry[] = [];
+      let newRightEntries: FileEntry[] = [];
+
+      if (left.handle) {
+        setScanProgressText(`${left.name}...`);
+        newLeftEntries = await scanFolderAsync(left.handle, 'left', {
+          onProgress: (count, path) => setScanProgressText(`[L] ${count} (${path})`),
+        });
+      } else if (left.fallbackFiles) {
+        newLeftEntries = parseFileList(left.fallbackFiles);
+      }
+
+      if (right.handle) {
+        setScanProgressText(`${right.name}...`);
+        newRightEntries = await scanFolderAsync(right.handle, 'right', {
+          onProgress: (count, path) => setScanProgressText(`[R] ${count} (${path})`),
+        });
+      } else if (right.fallbackFiles) {
+        newRightEntries = parseFileList(right.fallbackFiles);
+      }
+
+      setLeftEntries(newLeftEntries);
+      setRightEntries(newRightEntries);
+
+      const matched = matchFolderEntries(newLeftEntries, newRightEntries);
+      const diffCount = matched.summary.modified + matched.summary.leftOnly + matched.summary.rightOnly;
+      showToast(t.toasts.comparedSuccess(matched.summary.total, diffCount), 'success');
+    } catch (err: any) {
+      showToast(t.toasts.fileError(err.message), 'error');
+    } finally {
+      setIsScanning(false);
+      setScanProgressText('');
+    }
   };
 
   // On-demand load of file contents when a diff item is clicked
@@ -1046,12 +1157,20 @@ export const App: React.FC = () => {
 
       {/* Toolbar */}
       <div className="app-toolbar">
-        {/* Left File Controls */}
+        {/* Left File Controls & New Comparison */}
         <div className="toolbar-group">
+          <button
+            className="btn-primary"
+            onClick={() => setIsOpenDialogOpen(true)}
+            title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
+            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <FilePlus2 size={14} /> {t.toolbar.newCompare}
+          </button>
           <button
             className={`btn-secondary ${showFolderPanel ? 'active' : ''}`}
             onClick={() => setShowFolderPanel(!showFolderPanel)}
-            title={t.toolbar.folderDiff}
+            title={t.toolbar.toggleFolderPanel}
           >
             <FolderTree size={14} /> {t.toolbar.folderDiff}
           </button>
@@ -1061,9 +1180,15 @@ export const App: React.FC = () => {
           <div className="file-pane-info" title={leftFile.path || leftFile.name}>
             <FileText size={14} color="#60a5fa" />
             <span className="file-name-text">{leftFile.name}</span>
+            {leftFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
             {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
           </div>
-          <button className="btn-success" onClick={() => handleSave('left')} title={t.toolbar.saveTitle}>
+          <button
+            className="btn-success"
+            onClick={() => handleSave('left')}
+            disabled={leftFile.readOnly}
+            title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
+          >
             <Save size={14} /> {t.toolbar.saveLeft}
           </button>
         </div>
@@ -1106,12 +1231,18 @@ export const App: React.FC = () => {
 
         {/* Right File Controls */}
         <div className="toolbar-group">
-          <button className="btn-success" onClick={() => handleSave('right')} title={t.toolbar.saveTitle}>
+          <button
+            className="btn-success"
+            onClick={() => handleSave('right')}
+            disabled={rightFile.readOnly}
+            title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
+          >
             <Save size={14} /> {t.toolbar.saveRight}
           </button>
           <div className="file-pane-info" title={rightFile.path || rightFile.name}>
             <FileText size={14} color="#38bdf8" />
             <span className="file-name-text">{rightFile.name}</span>
+            {rightFile.readOnly && <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#334155', padding: '1px 4px', borderRadius: 2 }}>RO</span>}
             {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
           </div>
           <button className="btn-secondary" onClick={() => handleOpenFile('right')}>
@@ -1245,8 +1376,8 @@ export const App: React.FC = () => {
               onMount={handleEditorDidMount}
               theme="vs-dark"
               options={{
-                readOnly: false,
-                originalEditable: true,
+                readOnly: rightFile.readOnly ?? false,
+                originalEditable: !(leftFile.readOnly ?? false),
                 renderSideBySide,
                 ignoreTrimWhitespace,
                 automaticLayout: true,
@@ -1317,6 +1448,16 @@ export const App: React.FC = () => {
           onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
         />
       )}
+
+      {/* Floating WinMerge-style Open & Compare Dialog */}
+      <OpenDialog
+        isOpen={isOpenDialogOpen}
+        onClose={() => setIsOpenDialogOpen(false)}
+        onCompareFiles={handleCompareFilesFromDialog}
+        onCompareFolders={handleCompareFoldersFromDialog}
+        currentLeftFile={leftFile}
+        currentRightFile={rightFile}
+      />
 
       {/* Toast Notifications */}
       <div className="toast-container">
