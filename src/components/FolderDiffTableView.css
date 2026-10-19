@@ -89,19 +89,122 @@
 .filter-pills-bar {
   display: flex;
   align-items: center;
+  background-color: rgba(24, 24, 27, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+  backdrop-filter: blur(8px);
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.filter-pill:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.filter-pill.active {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filter-pill.diffs.active,
+.filter-pill.modified.active {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.filter-pill.left-only.active {
+  background-color: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.filter-pill.right-only.active {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* Badge inside pill */
+.filter-count {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.filter-pill:hover .filter-count {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: var(--text-primary);
+}
+
+.filter-pill.active .filter-count {
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
+.filter-pill.diffs.active .filter-count.diff,
+.filter-pill.modified.active .filter-count.mod {
+  background-color: rgba(245, 158, 11, 0.25);
+  color: #fef08a;
+}
+
+.filter-pill.diffs.has-diffs:not(.active) .filter-count.diff {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.filter-pill.left-only.active .filter-count.left {
+  background-color: rgba(96, 165, 250, 0.25);
+  color: #bfdbfe;
+}
+
+.filter-pill.right-only.active .filter-count.right {
+  background-color: rgba(56, 189, 248, 0.25);
+  color: #bae6fd;
 }
 
 .folder-search-box {
   display: flex;
   align-items: center;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0 8px;
-  height: 28px;
-  gap: 6px;
-  width: 200px;
+  background-color: rgba(24, 24, 27, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 32px;
+  gap: 8px;
+  width: 220px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.folder-search-box:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .folder-search-box input {
@@ -113,13 +216,34 @@
   width: 100%;
 }
 
+.folder-search-box input::placeholder {
+  color: var(--text-muted);
+}
+
 .rescan-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 0.8rem;
-  height: 28px;
+  font-weight: 500;
+  height: 32px;
+  border-radius: 6px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rescan-btn:hover:not(:disabled) {
+  background-color: #3f3f46;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.rescan-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .rescan-btn .spin {

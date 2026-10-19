@@ -187,38 +187,43 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
           <div className="filter-pills-bar">
             <button
               type="button"
-              className={`pill-btn ${filterType === 'all' ? 'active' : ''}`}
+              className={`filter-pill ${filterType === 'all' ? 'active' : ''}`}
               onClick={() => setFilterType('all')}
             >
-              {t.folderPanel.filterAll} ({summary.total})
+              <span className="filter-label">{t.folderPanel.filterAll}</span>
+              <span className="filter-count">{summary.total}</span>
             </button>
             <button
               type="button"
-              className={`pill-btn ${filterType === 'diffs' ? 'active' : ''}`}
+              className={`filter-pill diffs ${filterType === 'diffs' ? 'active' : ''} ${diffCount > 0 ? 'has-diffs' : ''}`}
               onClick={() => setFilterType('diffs')}
             >
-              {t.folderPanel.filterDiffs} ({diffCount})
+              <span className="filter-label">{t.folderPanel.filterDiffs}</span>
+              <span className="filter-count diff">{diffCount}</span>
             </button>
             <button
               type="button"
-              className={`pill-btn ${filterType === 'modified' ? 'active' : ''}`}
+              className={`filter-pill modified ${filterType === 'modified' ? 'active' : ''}`}
               onClick={() => setFilterType('modified')}
             >
-              {t.folderPanel.filterModified} ({summary.modified})
+              <span className="filter-label">{t.folderPanel.filterModified}</span>
+              <span className="filter-count mod">{summary.modified}</span>
             </button>
             <button
               type="button"
-              className={`pill-btn ${filterType === 'left-only' ? 'active' : ''}`}
+              className={`filter-pill left-only ${filterType === 'left-only' ? 'active' : ''}`}
               onClick={() => setFilterType('left-only')}
             >
-              {t.folderPanel.filterLeftOnly} ({summary.leftOnly})
+              <span className="filter-label">{t.folderPanel.filterLeftOnly}</span>
+              <span className="filter-count left">{summary.leftOnly}</span>
             </button>
             <button
               type="button"
-              className={`pill-btn ${filterType === 'right-only' ? 'active' : ''}`}
+              className={`filter-pill right-only ${filterType === 'right-only' ? 'active' : ''}`}
               onClick={() => setFilterType('right-only')}
             >
-              {t.folderPanel.filterRightOnly} ({summary.rightOnly})
+              <span className="filter-label">{t.folderPanel.filterRightOnly}</span>
+              <span className="filter-count right">{summary.rightOnly}</span>
             </button>
           </div>
 
