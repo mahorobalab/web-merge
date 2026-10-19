@@ -37,19 +37,22 @@ export function useFolderSync({
         const targetDirHandle = direction === 'leftToRight' ? rightDirHandle : leftDirHandle;
         const sourceEntries = direction === 'leftToRight' ? leftEntries : rightEntries;
 
+        let targetHandleMap: Map<string, FileSystemFileHandle> | undefined;
+
         if (sourceDirHandle && targetDirHandle) {
           if (node.isFolder) {
-            await copyFolderBetweenHandles(sourceDirHandle, targetDirHandle, node.path, sourceEntries);
+            targetHandleMap = await copyFolderBetweenHandles(sourceDirHandle, targetDirHandle, node.path, sourceEntries);
           } else {
-            await copyFileBetweenHandles(sourceDirHandle, targetDirHandle, node.path);
+            const handle = await copyFileBetweenHandles(sourceDirHandle, targetDirHandle, node.path);
+            targetHandleMap = new Map([[node.path, handle]]);
           }
         }
 
         // Update in-memory entries reactively
         if (direction === 'leftToRight') {
-          setRightEntries((prev) => updateEntriesAfterCopy(leftEntries, prev, node.path, node.isFolder));
+          setRightEntries((prev) => updateEntriesAfterCopy(leftEntries, prev, node.path, node.isFolder, targetHandleMap));
         } else {
-          setLeftEntries((prev) => updateEntriesAfterCopy(rightEntries, prev, node.path, node.isFolder));
+          setLeftEntries((prev) => updateEntriesAfterCopy(rightEntries, prev, node.path, node.isFolder, targetHandleMap));
         }
 
         showToast(

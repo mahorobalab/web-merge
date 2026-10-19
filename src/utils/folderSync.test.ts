@@ -43,6 +43,16 @@ describe('folderSync utility', () => {
       expect(updated.some((e) => e.path === 'dist/index.html')).toBe(true);
       expect(updated.some((e) => e.path === 'dist/app.js')).toBe(true);
     });
+
+    it('should assign new target handles and not leak source handles', () => {
+      const mockTargetHandle = { name: 'app.js', kind: 'file' } as any;
+      const targetHandles = new Map<string, FileSystemFileHandle>([
+        ['dist/app.js', mockTargetHandle],
+      ]);
+      const updated = updateEntriesAfterCopy(leftEntries, rightEntries, 'dist/app.js', false, targetHandles);
+      const appJs = updated.find((e) => e.path === 'dist/app.js');
+      expect(appJs?.handle).toBe(mockTargetHandle);
+    });
   });
 
   describe('updateEntriesAfterDelete', () => {

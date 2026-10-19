@@ -170,6 +170,17 @@ export const ja: Translations = {
     confirmDelete: (name: string, side: string) => `本当に「${name}」(${side}) を削除しますか？`,
     cancel: 'キャンセル',
     delete: '削除',
+    confirmCopyFolderTitle: 'フォルダのコピー・上書き',
+    confirmCopyFolder: (name: string, count: number, targetSide: string) =>
+      `本当に「${name}」内の ${count} 個のファイルを${targetSide}へコピー（上書き）しますか？`,
+    copyFolderWarning: '※ コピー先にある同名の既存ファイルは上書きされます。',
+    confirmOverwriteFileTitle: 'ファイルの上書きコピー',
+    confirmOverwriteFile: (name: string, targetSide: string) =>
+      `「${name}」は${targetSide}に既に存在します。上書きコピーしますか？`,
+    overwriteFileWarning: '※ 上書きされた内容は元に戻せません。',
+    copy: 'コピー',
+    overwriteCopy: '上書きコピー',
   },
 };
+
 

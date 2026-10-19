@@ -7,7 +7,8 @@ export function updateEntriesAfterCopy(
   sourceEntries: FileEntry[],
   targetEntries: FileEntry[],
   path: string,
-  isFolder: boolean = false
+  isFolder: boolean = false,
+  targetHandles?: Map<string, FileSystemFileHandle>
 ): FileEntry[] {
   // Find matching items from source
   const sourceMatches = isFolder
@@ -23,7 +24,11 @@ export function updateEntriesAfterCopy(
 
   // Insert or update entries in target
   for (const match of sourceMatches) {
-    targetMap.set(match.path, { ...match });
+    const targetHandle = targetHandles?.get(match.path);
+    targetMap.set(match.path, {
+      ...match,
+      handle: targetHandle ?? undefined,
+    });
   }
 
   return Array.from(targetMap.values());
@@ -86,14 +91,17 @@ export async function copyFolderBetweenHandles(
   targetDirHandle: FileSystemDirectoryHandle,
   folderRelativePath: string,
   matchingEntries: FileEntry[]
-): Promise<void> {
+): Promise<Map<string, FileSystemFileHandle>> {
   const filesUnderFolder = matchingEntries.filter(
     (e) => e.path === folderRelativePath || e.path.startsWith(`${folderRelativePath}/`)
   );
 
+  const handleMap = new Map<string, FileSystemFileHandle>();
   for (const file of filesUnderFolder) {
-    await copyFileBetweenHandles(sourceDirHandle, targetDirHandle, file.path);
+    const handle = await copyFileBetweenHandles(sourceDirHandle, targetDirHandle, file.path);
+    handleMap.set(file.path, handle);
   }
+  return handleMap;
 }
 
 /**

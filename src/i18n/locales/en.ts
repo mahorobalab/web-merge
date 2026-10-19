@@ -168,6 +168,16 @@ export const en = {
     confirmDelete: (name: string, side: string) => `Are you sure you want to delete "${name}" (${side})?`,
     cancel: 'Cancel',
     delete: 'Delete',
+    confirmCopyFolderTitle: 'Copy & Overwrite Folder',
+    confirmCopyFolder: (name: string, count: number, targetSide: string) =>
+      `Are you sure you want to copy ${count} file(s) in "${name}" to the ${targetSide}?`,
+    copyFolderWarning: 'Existing files with the same name in the target folder will be overwritten.',
+    confirmOverwriteFileTitle: 'Overwrite File',
+    confirmOverwriteFile: (name: string, targetSide: string) =>
+      `"${name}" already exists on the ${targetSide}. Do you want to overwrite it?`,
+    overwriteFileWarning: 'This action cannot be undone.',
+    copy: 'Copy',
+    overwriteCopy: 'Overwrite',
   },
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Folder,
   FolderOpen,
@@ -74,12 +74,63 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
     node: FolderTreeNode;
     side: 'left' | 'right' | 'both';
   } | null>(null);
+  const [copyTarget, setCopyTarget] = useState<{
+    node: FolderTreeNode;
+    direction: 'leftToRight' | 'rightToLeft';
+    fileCount: number;
+    isFolder: boolean;
+    isOverwrite: boolean;
+  } | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     x: number;
     y: number;
     node: FolderTreeNode | null;
   }>({ visible: false, x: 0, y: 0, node: null });
+
+  const requestCopyItem = useCallback(
+    (node: FolderTreeNode, direction: 'leftToRight' | 'rightToLeft') => {
+      const targetSideHasItem =
+        direction === 'leftToRight'
+          ? node.rightSize !== undefined || node.status === 'modified' || node.status === 'identical'
+          : node.leftSize !== undefined || node.status === 'modified' || node.status === 'identical';
+
+      if (node.isFolder) {
+        // Count files under this folder on source side
+        const fileCount = diffItems.filter(
+          (item) =>
+            (item.path === node.path || item.path.startsWith(`${node.path}/`)) &&
+            (direction === 'leftToRight' ? Boolean(item.left) : Boolean(item.right))
+        ).length;
+
+        setCopyTarget({
+          node,
+          direction,
+          fileCount: fileCount || 1,
+          isFolder: true,
+          isOverwrite: targetSideHasItem,
+        });
+        return;
+      }
+
+      // If single file and already exists in target (destructive overwrite)
+      if (targetSideHasItem && (node.status === 'modified' || node.status === 'identical')) {
+        setCopyTarget({
+          node,
+          direction,
+          fileCount: 1,
+          isFolder: false,
+          isOverwrite: true,
+        });
+        return;
+      }
+
+      // Target doesn't exist (clean copy of left-only or right-only): execute immediately
+      onCopyItem?.(node, direction);
+    },
+    [diffItems, onCopyItem]
+  );
+
 
   // Set of expanded folder paths
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
@@ -273,7 +324,7 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
                 type="button"
                 className="sync-action-btn"
                 disabled={!selectedHasLeft || !onCopyItem}
-                onClick={() => onCopyItem?.(selectedNode, 'leftToRight')}
+                onClick={() => requestCopyItem(selectedNode, 'leftToRight')}
                 title={t.folderTable.copyToRight}
               >
                 <ArrowRight size={13} color="#60a5fa" />
@@ -284,7 +335,7 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
                 type="button"
                 className="sync-action-btn"
                 disabled={!selectedHasRight || !onCopyItem}
-                onClick={() => onCopyItem?.(selectedNode, 'rightToLeft')}
+                onClick={() => requestCopyItem(selectedNode, 'rightToLeft')}
                 title={t.folderTable.copyToLeft}
               >
                 <ArrowLeft size={13} color="#60a5fa" />
@@ -481,8 +532,8 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
           x={contextMenu.x}
           y={contextMenu.y}
           node={contextMenu.node}
-          onCopyToRight={() => onCopyItem?.(contextMenu.node!, 'leftToRight')}
-          onCopyToLeft={() => onCopyItem?.(contextMenu.node!, 'rightToLeft')}
+          onCopyToRight={() => requestCopyItem(contextMenu.node!, 'leftToRight')}
+          onCopyToLeft={() => requestCopyItem(contextMenu.node!, 'rightToLeft')}
           onDeleteLeft={() => setDeleteTarget({ node: contextMenu.node!, side: 'left' })}
           onDeleteRight={() => setDeleteTarget({ node: contextMenu.node!, side: 'right' })}
           onDeleteBoth={() => setDeleteTarget({ node: contextMenu.node!, side: 'both' })}
@@ -515,6 +566,53 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
             setDeleteTarget(null);
           }}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* Copy / Overwrite Confirmation Modal */}
+      {copyTarget && (
+        <ConfirmModal
+          isOpen={Boolean(copyTarget)}
+          title={
+            copyTarget.isFolder
+              ? t.confirmModal.confirmCopyFolderTitle
+              : t.confirmModal.confirmOverwriteFileTitle
+          }
+          message={
+            copyTarget.isFolder
+              ? t.confirmModal.confirmCopyFolder(
+                  copyTarget.node.name,
+                  copyTarget.fileCount,
+                  copyTarget.direction === 'leftToRight'
+                    ? (locale === 'ja' ? '右側' : 'Right')
+                    : (locale === 'ja' ? '左側' : 'Left')
+                )
+              : t.confirmModal.confirmOverwriteFile(
+                  copyTarget.node.name,
+                  copyTarget.direction === 'leftToRight'
+                    ? (locale === 'ja' ? '右側' : 'Right')
+                    : (locale === 'ja' ? '左側' : 'Left')
+                )
+          }
+          warningNote={
+            copyTarget.isFolder
+              ? t.confirmModal.copyFolderWarning
+              : t.confirmModal.overwriteFileWarning
+          }
+          confirmLabel={
+            copyTarget.isFolder
+              ? t.confirmModal.copy
+              : t.confirmModal.overwriteCopy
+          }
+          cancelLabel={t.confirmModal.cancel}
+          isDanger={copyTarget.isOverwrite}
+          onConfirm={() => {
+            if (copyTarget && onCopyItem) {
+              onCopyItem(copyTarget.node, copyTarget.direction);
+            }
+            setCopyTarget(null);
+          }}
+          onCancel={() => setCopyTarget(null)}
         />
       )}
     </div>
