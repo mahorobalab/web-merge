@@ -3,7 +3,6 @@ import {
   FilePlus2,
   FolderTree,
   FolderOpen,
-  FileText,
   Save,
   ArrowLeft,
   ArrowRight,
@@ -24,7 +23,7 @@ export interface AppToolbarProps {
   isFolderTab?: boolean;
   onOpenNewCompare: () => void;
 
-  // Folder mode props (optional fallback)
+  // Folder mode props
   leftFolderName?: string;
   rightFolderName?: string;
   isScanning?: boolean;
@@ -86,198 +85,224 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
 
   if (!hasActiveTab) return null;
 
-  if (isFolderTab) {
-    return (
-      <div className="app-toolbar">
-        <div className="app-toolbar-row">
-          <div className="toolbar-group">
+  return (
+    <div className="app-toolbar">
+      {/* 1. New Compare - Always first at top-left */}
+      <button
+        className="btn-primary"
+        onClick={onOpenNewCompare}
+        title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
+        style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', fontSize: '0.8rem', flexShrink: 0 }}
+      >
+        <FilePlus2 size={14} />
+        <span>{t.toolbar.newCompare}</span>
+      </button>
+
+      <span className="toolbar-divider" />
+
+      {isFolderTab ? (
+        /* Folder Comparison Toolbar Controls */
+        <>
+          <button
+            className="btn-secondary"
+            onClick={onRescanFolder}
+            disabled={isScanning || !canCompareFolder}
+            title={t.folderTable.rescan}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', fontSize: '0.8rem', flexShrink: 0 }}
+          >
+            <RefreshCw size={13} className={isScanning ? 'spin' : ''} />
+            <span>{t.folderTable.rescan}</span>
+          </button>
+
+          <span className="toolbar-divider" />
+
+          <div className="file-pane-info-compact">
+            <FolderTree size={13} color="#60a5fa" />
             <button
-              className="btn-primary"
-              onClick={onOpenNewCompare}
-              title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
-              style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              onClick={onOpenLeftFolder}
+              title={t.toolbar.openLeft}
             >
-              <FilePlus2 size={14} /> {t.toolbar.newCompare}
+              {leftFolderName || 'Left Folder'}
             </button>
+            <span style={{ color: '#94a3b8', margin: '0 4px' }}>↔</span>
             <button
-              className="btn-secondary"
-              onClick={onRescanFolder}
-              disabled={isScanning || !canCompareFolder}
-              title={t.folderTable.rescan}
+              style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              onClick={onOpenRightFolder}
+              title={t.toolbar.openRight}
             >
-              <RefreshCw size={14} className={isScanning ? 'spin' : ''} /> {t.folderTable.rescan}
+              {rightFolderName || 'Right Folder'}
             </button>
-            <div className="file-pane-info">
-              <FolderTree size={14} color="#60a5fa" />
-              <button
-                style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
-                onClick={onOpenLeftFolder}
-                title={t.toolbar.openLeft}
-              >
-                {leftFolderName || 'Left Folder'}
-              </button>
-              <span style={{ color: '#94a3b8', margin: '0 4px' }}>↔</span>
-              <button
-                style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500 }}
-                onClick={onOpenRightFolder}
-                title={t.toolbar.openRight}
-              >
-                {rightFolderName || 'Right Folder'}
-              </button>
-            </div>
+          </div>
+
+          {onResetFolder && (
             <button
               className="btn-secondary"
               onClick={onResetFolder}
               title="Reset"
-              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+              style={{ fontSize: '0.75rem', padding: '3px 8px', marginLeft: 4, flexShrink: 0 }}
             >
               Reset
             </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+          )}
+        </>
+      ) : (
+        /* File Comparison Toolbar Controls */
+        leftFile && rightFile && (
+          <>
+            {/* Left File Controls */}
+            <div className="toolbar-btn-group">
+              <button
+                className="btn-secondary"
+                onClick={() => onOpenFile?.('left')}
+                title={t.toolbar.openLeft}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', fontSize: '0.8rem' }}
+              >
+                <FolderOpen size={13} />
+                <span>{t.toolbar.openLeft}</span>
+              </button>
+              <button
+                className="btn-success"
+                onClick={() => onSaveFile?.('left')}
+                disabled={leftFile.readOnly}
+                title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', fontSize: '0.8rem' }}
+              >
+                <Save size={13} />
+                <span>{t.toolbar.saveLeft}</span>
+              </button>
+            </div>
 
-  if (!leftFile || !rightFile) return null;
+            <span className="toolbar-divider" />
 
-  return (
-    <div className="app-toolbar">
-      {/* Row 1: File Pane Information, Merge & Navigation Controls */}
-      <div className="app-toolbar-row">
-        {/* Left File Controls */}
-        <div className="toolbar-group">
-          <button className="btn-secondary" onClick={() => onOpenFile?.('left')}>
-            <FolderOpen size={14} /> {t.toolbar.openLeft}
-          </button>
-          <div className="file-pane-info" title={leftFile.path || leftFile.name}>
-            <FileText size={14} color="#60a5fa" />
-            <span className="file-name-text">{leftFile.name}</span>
-            {leftFile.readOnly && (
-              <span className="ro-badge">RO</span>
-            )}
-            {leftFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
-          </div>
-          <button
-            className="btn-success"
-            onClick={() => onSaveFile?.('left')}
-            disabled={leftFile.readOnly}
-            title={leftFile.readOnly ? 'Left file is read-only' : t.toolbar.saveTitle}
-          >
-            <Save size={14} /> {t.toolbar.saveLeft}
-          </button>
-        </div>
+            {/* Merge Actions */}
+            <div className="toolbar-btn-group">
+              <button
+                className="btn-secondary"
+                onClick={() => onMerge?.('rightToLeft')}
+                title={t.toolbar.mergeToLeftTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <ArrowLeft size={13} />
+                <span>{t.toolbar.mergeToLeft}</span>
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => onMerge?.('leftToRight')}
+                title={t.toolbar.mergeToRightTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <span>{t.toolbar.mergeToRight}</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
 
-        {/* Center: Merge Actions & Diff Navigation */}
-        <div className="toolbar-group">
-          <button
-            className="btn-secondary"
-            onClick={() => onMerge?.('rightToLeft')}
-            title={t.toolbar.mergeToLeftTitle}
-          >
-            <ArrowLeft size={14} /> {t.toolbar.mergeToLeft}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => onMerge?.('leftToRight')}
-            title={t.toolbar.mergeToRightTitle}
-          >
-            {t.toolbar.mergeToRight} <ArrowRight size={14} />
-          </button>
-          <span className="toolbar-divider" />
-          <button
-            className="btn-secondary"
-            onClick={onPrevDiff}
-            title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
-          >
-            <ChevronUp size={14} /> {t.toolbar.prevDiff}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={onNextDiff}
-            title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
-          >
-            {t.toolbar.nextDiff} <ChevronDown size={14} />
-          </button>
-        </div>
+            <span className="toolbar-divider" />
 
-        {/* Right File Controls */}
-        <div className="toolbar-group">
-          <button
-            className="btn-success"
-            onClick={() => onSaveFile?.('right')}
-            disabled={rightFile.readOnly}
-            title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
-          >
-            <Save size={14} /> {t.toolbar.saveRight}
-          </button>
-          <div className="file-pane-info" title={rightFile.path || rightFile.name}>
-            <FileText size={14} color="#38bdf8" />
-            <span className="file-name-text">{rightFile.name}</span>
-            {rightFile.readOnly && (
-              <span className="ro-badge">RO</span>
-            )}
-            {rightFile.isDirty && <span className="file-dirty-dot" title="Unsaved modifications" />}
-          </div>
-          <button className="btn-secondary" onClick={() => onOpenFile?.('right')}>
-            <FolderOpen size={14} /> {t.toolbar.openRight}
-          </button>
-        </div>
-      </div>
+            {/* Diff Navigation */}
+            <div className="toolbar-btn-group">
+              <button
+                className="btn-secondary"
+                onClick={onPrevDiff}
+                title={`${t.toolbar.prevDiff} (Shift+F7 / Ctrl+Up)`}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <ChevronUp size={13} />
+                <span>{t.toolbar.prevDiff}</span>
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={onNextDiff}
+                title={`${t.toolbar.nextDiff} (F7 / Ctrl+Down)`}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <span>{t.toolbar.nextDiff}</span>
+                <ChevronDown size={13} />
+              </button>
+            </div>
 
-      {/* Row 2: Comparison Options & Export Actions */}
-      <div className="app-toolbar-row">
-        <div className="toolbar-group">
-          <button
-            className="btn-primary"
-            onClick={onOpenNewCompare}
-            title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
-            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <FilePlus2 size={14} /> {t.toolbar.newCompare}
-          </button>
-          <span className="toolbar-divider" />
-          <button
-            className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
-            onClick={onToggleIgnoreTrimWhitespace}
-            title={t.toolbar.ignoreWhitespace}
-          >
-            {t.toolbar.ignoreWhitespace}: {ignoreTrimWhitespace ? t.toolbar.on : t.toolbar.off}
-          </button>
-          <button
-            className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
-            onClick={onToggleIgnoreLineEndings}
-            title={t.toolbar.ignoreLineEndings}
-          >
-            {t.toolbar.ignoreLineEndings}: {normalizeOptions.ignoreLineEndings ? t.toolbar.on : t.toolbar.off}
-          </button>
-          <button
-            className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
-            onClick={onToggleRenderSideBySide}
-            title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
-          >
-            {renderSideBySide ? <Columns size={14} /> : <Rows size={14} />}
-            {renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}
-          </button>
-        </div>
+            <span className="toolbar-divider" />
 
-        <div className="toolbar-group">
-          <button
-            className="btn-secondary"
-            onClick={onExportHtmlReport}
-            title={t.toolbar.exportTitle}
-          >
-            <FileCode size={14} /> {t.toolbar.exportReport}
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={onExportPatch}
-            title={t.toolbar.exportTitle}
-          >
-            <Download size={14} /> {t.toolbar.exportPatch}
-          </button>
-        </div>
-      </div>
+            {/* Right File Controls */}
+            <div className="toolbar-btn-group">
+              <button
+                className="btn-success"
+                onClick={() => onSaveFile?.('right')}
+                disabled={rightFile.readOnly}
+                title={rightFile.readOnly ? 'Right file is read-only' : t.toolbar.saveTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', fontSize: '0.8rem' }}
+              >
+                <Save size={13} />
+                <span>{t.toolbar.saveRight}</span>
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => onOpenFile?.('right')}
+                title={t.toolbar.openRight}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', fontSize: '0.8rem' }}
+              >
+                <FolderOpen size={13} />
+                <span>{t.toolbar.openRight}</span>
+              </button>
+            </div>
+
+            <span className="toolbar-divider" />
+
+            {/* Comparison Options */}
+            <div className="toolbar-btn-group">
+              <button
+                className={`btn-toggle ${ignoreTrimWhitespace ? 'active' : ''}`}
+                onClick={onToggleIgnoreTrimWhitespace}
+                title={t.toolbar.ignoreWhitespace}
+                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                {t.toolbar.ignoreWhitespace}
+              </button>
+              <button
+                className={`btn-toggle ${normalizeOptions.ignoreLineEndings ? 'active' : ''}`}
+                onClick={onToggleIgnoreLineEndings}
+                title={t.toolbar.ignoreLineEndings}
+                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                {t.toolbar.ignoreLineEndings}
+              </button>
+              <button
+                className={`btn-toggle ${renderSideBySide ? 'active' : ''}`}
+                onClick={onToggleRenderSideBySide}
+                title={renderSideBySide ? t.toolbar.inline : t.toolbar.sideBySide}
+                style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                {renderSideBySide ? <Columns size={13} /> : <Rows size={13} />}
+                <span>{renderSideBySide ? t.toolbar.sideBySide : t.toolbar.inline}</span>
+              </button>
+            </div>
+
+            <span className="toolbar-divider" />
+
+            {/* Export Actions */}
+            <div className="toolbar-btn-group">
+              <button
+                className="btn-secondary"
+                onClick={onExportHtmlReport}
+                title={t.toolbar.exportTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <FileCode size={13} />
+                <span>{t.toolbar.exportReport}</span>
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={onExportPatch}
+                title={t.toolbar.exportTitle}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.8rem' }}
+              >
+                <Download size={13} />
+                <span>{t.toolbar.exportPatch}</span>
+              </button>
+            </div>
+          </>
+        )
+      )}
     </div>
   );
 };

@@ -75,15 +75,21 @@
 /* Toolbar */
 .app-toolbar {
   display: flex;
-  flex-direction: column;
-  padding: 8px 16px;
+  align-items: center;
+  justify-content: flex-start;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  padding: 0 16px;
   background-color: #202023;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.85rem;
-  gap: 8px;
-  min-height: 84px;
+  font-size: 0.82rem;
+  gap: 6px;
   box-sizing: border-box;
-  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
 
 [data-theme='light'] .app-toolbar {
@@ -91,19 +97,35 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.app-toolbar-row {
+.app-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbar-btn-group {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.file-pane-info-compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .toolbar-divider {
   width: 1px;
   height: 18px;
   background-color: var(--border-subtle);
-  margin: 0 4px;
+  margin: 0 3px;
+  flex-shrink: 0;
 }
 
 .ro-badge {

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Trash2,
-  FilePlus2,
 } from 'lucide-react';
 import type { DiffItem, DiffSummary } from '../utils/diffMatcher';
 import {
@@ -36,7 +35,6 @@ export interface FolderDiffTableViewProps {
   onOpenFileDiff: (item: DiffItem) => void;
   onCopyItem?: (node: FolderTreeNode, direction: 'leftToRight' | 'rightToLeft') => void;
   onDeleteItem?: (node: FolderTreeNode, side: 'left' | 'right' | 'both') => void;
-  onOpenNewCompare?: () => void;
 }
 
 type FilterType = 'all' | 'diffs' | 'modified' | 'left-only' | 'right-only' | 'identical';
@@ -66,7 +64,6 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
   onOpenFileDiff,
   onCopyItem,
   onDeleteItem,
-  onOpenNewCompare,
 }) => {
   const { t, locale } = useTranslation();
 
@@ -376,18 +373,7 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
             />
           </div>
 
-          {onOpenNewCompare && (
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={onOpenNewCompare}
-              title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
-              style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', padding: '5px 10px' }}
-            >
-              <FilePlus2 size={13} />
-              <span>{t.toolbar.newCompare}</span>
-            </button>
-          )}
+
 
           <button
             type="button"
