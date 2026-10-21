@@ -7,6 +7,8 @@ export const en = {
     hasDiff: 'Differences Detected',
   },
   toolbar: {
+    newFile: 'New',
+    open: 'Open...',
     newCompare: 'New...',
     folderDiff: 'Folder Diff',
     toggleFolderPanel: 'Toggle Folder Diff Panel',

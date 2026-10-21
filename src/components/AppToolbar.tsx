@@ -21,7 +21,9 @@ import { useTranslation } from '../i18n/I18nContext';
 export interface AppToolbarProps {
   hasActiveTab?: boolean;
   isFolderTab?: boolean;
-  onOpenNewCompare: () => void;
+  onNewCompare?: () => void;
+  onOpenDialog?: () => void;
+  onOpenNewCompare?: () => void;
 
   // Folder mode props
   leftFolderName?: string;
@@ -54,6 +56,8 @@ export interface AppToolbarProps {
 export const AppToolbar: React.FC<AppToolbarProps> = ({
   hasActiveTab = true,
   isFolderTab = false,
+  onNewCompare,
+  onOpenDialog,
   onOpenNewCompare,
 
   leftFolderName = '',
@@ -87,15 +91,26 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
 
   return (
     <div className="app-toolbar">
-      {/* 1. New Compare - Always first at top-left */}
+      {/* 1. New - WinMerge style empty diff editor */}
       <button
-        className="btn-primary"
-        onClick={onOpenNewCompare}
-        title={`${t.toolbar.newCompare} (Ctrl+O / Ctrl+N)`}
-        style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', fontSize: '0.8rem', flexShrink: 0 }}
+        className="btn-secondary"
+        onClick={onNewCompare}
+        title={`${t.toolbar.newFile} (Ctrl+N)`}
+        style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', fontSize: '0.8rem', flexShrink: 0 }}
       >
         <FilePlus2 size={14} />
-        <span>{t.toolbar.newCompare}</span>
+        <span>{t.toolbar.newFile}</span>
+      </button>
+
+      {/* 2. Open - Open comparison dialog (files or folders) */}
+      <button
+        className="btn-primary"
+        onClick={onOpenDialog ?? onOpenNewCompare}
+        title={`${t.toolbar.open} (Ctrl+O)`}
+        style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', fontSize: '0.8rem', flexShrink: 0 }}
+      >
+        <FolderOpen size={14} />
+        <span>{t.toolbar.open}</span>
       </button>
 
       <span className="toolbar-divider" />

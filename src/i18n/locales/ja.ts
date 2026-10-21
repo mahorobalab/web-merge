@@ -9,6 +9,8 @@ export const ja: Translations = {
     hasDiff: '差分あり',
   },
   toolbar: {
+    newFile: '新規',
+    open: '開く...',
     newCompare: '新規...',
     folderDiff: 'フォルダ比較',
     toggleFolderPanel: 'フォルダ比較パネルの表示/非表示',

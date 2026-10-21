@@ -86,7 +86,7 @@ export const TabBar: React.FC<TabBarProps> = ({
           <button
             type="button"
             className="tab-new-btn"
-            title={`${t.toolbar.newCompare} (Ctrl+O)`}
+            title={`${t.toolbar.newFile} (Ctrl+N)`}
             onClick={onNewCompare}
           >
             <Plus size={14} />

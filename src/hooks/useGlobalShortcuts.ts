@@ -4,6 +4,7 @@ import type { FileState } from '../types/app';
 interface UseGlobalShortcutsOptions {
   leftFile: FileState;
   rightFile: FileState;
+  onNewEmptyCompare?: () => void;
   onOpenCompareDialog: () => void;
   onSaveLeft: () => void;
   onSaveRight: () => void;
@@ -17,6 +18,7 @@ interface UseGlobalShortcutsOptions {
 export function useGlobalShortcuts({
   leftFile,
   rightFile,
+  onNewEmptyCompare,
   onOpenCompareDialog,
   onSaveLeft,
   onSaveRight,
@@ -38,8 +40,15 @@ export function useGlobalShortcuts({
         return;
       }
 
-      // Ctrl+O / Ctrl+N: Open comparison dialog
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O' || e.key === 'n' || e.key === 'N')) {
+      // Ctrl+N: New empty file comparison (WinMerge standard)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        onNewEmptyCompare?.();
+        return;
+      }
+
+      // Ctrl+O: Open comparison dialog
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O')) {
         e.preventDefault();
         onOpenCompareDialog();
         return;
@@ -100,6 +109,7 @@ export function useGlobalShortcuts({
   }, [
     leftFile,
     rightFile,
+    onNewEmptyCompare,
     onOpenCompareDialog,
     onSaveLeft,
     onSaveRight,

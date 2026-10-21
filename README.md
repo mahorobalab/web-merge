@@ -9,11 +9,19 @@ WebMerge is an open-source web application designed to bring the power of WinMer
 [![Zero-Server](https://img.shields.io/badge/Zero--Server-100%25_Local--First-10B981?style=for-the-badge)](https://web-merge.mahorobalab.workers.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-🚀 **[Experience Live Demo Instantly!](https://web-merge.mahorobalab.workers.dev/)** *(Zero installation required)*
+🚀 **[Experience Live Demo Instantly!](https://web-merge.mahorobalab.workers.dev/)** _(Zero installation required)_
 
 [日本語ドキュメント (Japanese Document)](./README_ja.md)
 
 ---
+
+## 🤖 AI-Agent & Copilot Friendly (Contributions Welcome!)
+
+WebMerge was built from scratch in record time, heavily leveraging high-reasoning AI architectures. We fully embrace the future of AI-assisted software development.
+
+- **AI Contributions are highly welcomed!**
+- Feel free to feed this entire codebase, components, or types into your favorite AI assistants (Cursor, GitHub Copilot, Antigravity, Gemini, etc.).
+- We highly encourage you to let your AI agents generate Pull Requests for optimizing hashing performance, adding shortcuts, or fixing edge cases.
 
 ## ✨ Features
 
@@ -39,10 +47,12 @@ WebMerge is an open-source web application designed to bring the power of WinMer
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js (v20+ recommended)
 - Modern browser with File System Access API support (Google Chrome, Microsoft Edge, Opera, or Chromium-based browsers)
 
 ### Installation & Development
+
 ```bash
 # Clone the repository
 git clone https://github.com/mahorobalab/web-merge.git
@@ -56,11 +66,13 @@ npm run dev
 ```
 
 ### Running Tests
+
 ```bash
 npm test
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 ```
@@ -68,4 +80,5 @@ npm run build
 ---
 
 ## 📜 License
+
 MIT License

@@ -111,6 +111,7 @@ export const App: React.FC = () => {
     handleSelectTab,
     handleCloseTab,
     markActiveTabDirty,
+    openNewEmptyTab,
   } = useTabs({
     initialTabs: [
       {
@@ -241,10 +242,22 @@ export const App: React.FC = () => {
     showToast,
   });
 
+  // WinMerge standard: Open empty side-by-side file comparison tab
+  const handleNewEmptyCompare = useCallback(() => {
+    openNewEmptyTab(locale);
+    showToast(
+      locale === 'ja'
+        ? '新規ファイル比較を開きました'
+        : 'Opened new empty file comparison',
+      'info'
+    );
+  }, [openNewEmptyTab, locale, showToast]);
+
   // Global Keyboard Shortcuts hook
   useGlobalShortcuts({
     leftFile,
     rightFile,
+    onNewEmptyCompare: handleNewEmptyCompare,
     onOpenCompareDialog: () => setIsOpenDialogOpen(true),
     onSaveLeft: () => handleSave('left'),
     onSaveRight: () => handleSave('right'),
@@ -399,10 +412,11 @@ export const App: React.FC = () => {
           showToast(t.toasts.savedSuccess(side === 'left' ? 'Left' : 'Right'));
         }
       } else {
-        downloadFileContent(file.name, editorValue);
+        const downloadName = file.name.includes('.') ? file.name : `${file.name}.txt`;
+        downloadFileContent(downloadName, editorValue);
         updateFileContentAfterSave(side, editorValue, Date.now());
         markActiveTabDirty(false);
-        showToast(t.toasts.downloaded(file.name));
+        showToast(t.toasts.downloaded(downloadName));
       }
     } catch (err: any) {
       showToast(t.toasts.saveError(err.message), 'error');
@@ -567,7 +581,8 @@ export const App: React.FC = () => {
       <AppToolbar
         hasActiveTab={Boolean(activeTab)}
         isFolderTab={activeTab?.type === 'folder'}
-        onOpenNewCompare={() => setIsOpenDialogOpen(true)}
+        onNewCompare={handleNewEmptyCompare}
+        onOpenDialog={() => setIsOpenDialogOpen(true)}
         leftFolderName={leftFolderName}
         rightFolderName={rightFolderName}
         isScanning={isScanning}
@@ -604,13 +619,14 @@ export const App: React.FC = () => {
         activeTabId={activeTabId}
         onSelectTab={handleSelectTab}
         onCloseTab={handleCloseTab}
-        onNewCompare={() => setIsOpenDialogOpen(true)}
+        onNewCompare={handleNewEmptyCompare}
       />
 
       {/* Workspace Area: Folder Diff Table vs File Diff Editor vs Empty Workspace */}
       {tabs.length === 0 ? (
         <EmptyWorkspace
           onOpenCompare={() => setIsOpenDialogOpen(true)}
+          onNewCompare={handleNewEmptyCompare}
           onLoadDemo={() => (window as any).__loadSampleFolderCompare?.()}
         />
       ) : activeTab?.type === 'folder' ? (

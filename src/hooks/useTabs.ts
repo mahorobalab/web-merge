@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import type { AppTab, FileState } from '../types/app';
+import { createEmptyCompareTab } from '../utils/emptyTabFactory';
 
 interface UseTabsOptions {
   initialTabs: AppTab[];
@@ -20,6 +21,7 @@ export function useTabs({
 }: UseTabsOptions) {
   const [tabs, setTabs] = useState<AppTab[]>(initialTabs);
   const [activeTabId, setActiveTabId] = useState<string>(initialActiveTabId);
+  const untitledCounterRef = useRef(1);
 
   const activeTab = useMemo(() => {
     return tabs.find((t) => t.id === activeTabId) || tabs[0];
@@ -105,6 +107,35 @@ export function useTabs({
     [activeTabId]
   );
 
+  // Opens a new empty side-by-side diff editor tab (WinMerge standard)
+  const openNewEmptyTab = useCallback(
+    (locale: 'en' | 'ja' = 'ja') => {
+      const num = untitledCounterRef.current++;
+      const newTab = createEmptyCompareTab({ counter: num, locale });
+
+      setTabs((prev) => {
+        const updated = prev.map((tab) => {
+          if (tab.id === activeTabId && tab.type === 'file') {
+            return {
+              ...tab,
+              leftFile: { ...leftFile },
+              rightFile: { ...rightFile },
+              isDirty: leftFile.isDirty || rightFile.isDirty,
+            };
+          }
+          return tab;
+        });
+        return [...updated, newTab];
+      });
+
+      if (newTab.leftFile) setLeftFile(newTab.leftFile);
+      if (newTab.rightFile) setRightFile(newTab.rightFile);
+      setActiveTabId(newTab.id);
+      return newTab.id;
+    },
+    [activeTabId, leftFile, rightFile, setLeftFile, setRightFile]
+  );
+
   return {
     tabs,
     setTabs,
@@ -114,5 +145,6 @@ export function useTabs({
     handleSelectTab,
     handleCloseTab,
     markActiveTabDirty,
+    openNewEmptyTab,
   };
 }
