@@ -21,7 +21,7 @@ This document outlines the guidelines, architecture principles, testing standard
 
 - **Core Runtime**: TypeScript, React, Vite
 - **Internationalization (i18n)**: English (default) and Japanese built-in support
-- **Styling**: CSS Modules / Vanilla CSS (refined modern UI, VS Code-like dark theme by default)
+- **Styling**: CSS Modules / Vanilla CSS (refined modern UI, light theme by default, dark mode supported)
 - **Editor / Diff Engine**: Monaco Editor
 - **Testing**:
   - Unit & Integration Testing: **Vitest**

@@ -28,7 +28,7 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
   onEditorBeforeMount,
   onEditorDidMount,
   onDropItem,
-  theme = 'dark',
+  theme = 'light',
 }) => {
   const { t } = useTranslation();
   const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);

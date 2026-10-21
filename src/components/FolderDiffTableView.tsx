@@ -21,6 +21,7 @@ import {
 import { useTranslation } from '../i18n/I18nContext';
 import { FolderContextMenu } from './FolderContextMenu';
 import { ConfirmModal } from './ConfirmModal';
+import { useTableZoom } from '../hooks/useTableZoom';
 import './FolderDiffTableView.css';
 
 
@@ -66,6 +67,7 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
   onDeleteItem,
 }) => {
   const { t, locale } = useTranslation();
+  const { containerRef, fontSize, resetFontSize, zoomPercentage } = useTableZoom();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -253,7 +255,11 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
   const diffCount = summary.modified + summary.leftOnly + summary.rightOnly;
 
   return (
-    <div className="folder-diff-table-container">
+    <div
+      ref={containerRef}
+      className="folder-diff-table-container"
+      style={{ '--table-font-size': `${fontSize}px` } as React.CSSProperties}
+    >
       {/* Table Toolbar & Path Info */}
       <div className="folder-table-toolbar">
         {/* Left / Right Folder Indicator */}
@@ -525,6 +531,14 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
 
         <div className="statusbar-right">
           <span>{t.folderTable.itemsCount(visibleNodes.length, diffCount)}</span>
+          <button
+            type="button"
+            className="table-zoom-indicator"
+            onClick={resetFontSize}
+            title={locale === 'ja' ? '文字サイズリセット (Ctrl+マウスホイールで拡大縮小, Ctrl+0でリセット)' : 'Reset font size (Ctrl+MouseWheel to zoom, Ctrl+0 to reset)'}
+          >
+            <span>{zoomPercentage}</span>
+          </button>
         </div>
       </div>
 

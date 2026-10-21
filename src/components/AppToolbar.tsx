@@ -134,7 +134,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
           <div className="file-pane-info-compact">
             <FolderTree size={13} color="#60a5fa" />
             <button
-              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               onClick={onOpenLeftFolder}
               title={t.toolbar.openLeft}
             >
@@ -142,7 +142,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             </button>
             <span style={{ color: '#94a3b8', margin: '0 4px' }}>↔</span>
             <button
-              style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontWeight: 500, fontSize: '0.8rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               onClick={onOpenRightFolder}
               title={t.toolbar.openRight}
             >

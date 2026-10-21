@@ -198,7 +198,7 @@ export const App: React.FC = () => {
   // Theme state ('dark' | 'light')
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('webmerge_theme');
-    return saved === 'light' ? 'light' : 'dark';
+    return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {

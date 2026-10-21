@@ -20,7 +20,7 @@
 ## 2. 技術スタック
 
 - **Core Runtime**: TypeScript, React, Vite
-- **Styling**: CSS Modules / Vanilla CSS（洗練されたモダンUI、VS Codeライクなダークモード標準対応）
+- **Styling**: CSS Modules / Vanilla CSS（洗練されたモダンUI、ライトモード標準・ダークモード切り替え対応）
 - **Editor / Diff Engine**: Monaco Editor
 - **Testing**:
   - 単体・統合テスト: **Vitest**
