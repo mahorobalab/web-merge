@@ -72,6 +72,11 @@ Develop incrementally with small, focused commits.
   - `chore:` Build scripts, dependencies, configuration
 - **Commit Unit**:
   - Group one feature + its unit tests or distinct documentation changes per commit.
+- **Branching Strategy & Workflow**:
+  - **`development`**: Daily working branch. All active development occurs here or on temporary topic branches (`feature/*`, `fix/*`).
+  - **`main`**: Production-only branch. Direct commits and local merges into `main` are strictly forbidden (enforced by `.githooks` and GitHub branch protection).
+  - **Pull Requests**: Changes to `main` must always be submitted via Pull Request from `development` after all CI tests pass.
+  - See `docs/BRANCH_WORKFLOW.md` for full branch guidelines and Cloudflare deployment steps.
 
 ---
 

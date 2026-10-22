@@ -7,3 +7,8 @@ not_found_handling = "single-page-application"
 
 [observability]
 enabled = true
+
+[env.development]
+name = "web-merge-development"
+
+[previews]

@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:dev": "npm run build && wrangler deploy --env development",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
