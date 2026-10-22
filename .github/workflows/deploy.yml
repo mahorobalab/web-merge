@@ -43,26 +43,16 @@ jobs:
       - name: Build application bundle
         run: npm run build
 
-      - name: Check Cloudflare Token Presence
-        run: |
-          if [ -n "$TOKEN" ]; then
-            echo "Token is set! (Length: ${#TOKEN})"
-          else
-            echo "WARNING: Token is EMPTY! Neither CLOUDFLARE_API_TOKEN nor CLOUDFLARE_TOKEN was found."
-          fi
-        env:
-          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN }}
-
       - name: Deploy to Cloudflare (Development)
         if: github.ref == 'refs/heads/development' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'development')
         run: npx wrangler deploy --env development
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare (Production)
         if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
         run: npx wrangler deploy
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
