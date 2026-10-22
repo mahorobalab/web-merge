@@ -23,6 +23,7 @@ import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { useFolderSync } from './hooks/useFolderSync';
 import { useFolderCompare } from './hooks/useFolderCompare';
 import { useSessionPersistence } from './hooks/useSessionPersistence';
+import { useEditorZoom } from './hooks/useEditorZoom';
 
 // Components
 import { AppHeader } from './components/AppHeader';
@@ -34,6 +35,8 @@ import { AppStatusBar } from './components/AppStatusBar';
 import { DiffContextMenu } from './components/DiffContextMenu';
 import { OpenDialog } from './components/OpenDialog';
 import { EmptyWorkspace } from './components/EmptyWorkspace';
+import { AboutModal } from './components/AboutModal';
+import { shouldShowAboutOnStartup, markAboutAsShown } from './utils/aboutStorage';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './App.css';
 
@@ -92,7 +95,20 @@ export const App: React.FC = () => {
 
   // Dialog & Notification state
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(() => shouldShowAboutOnStartup());
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Automatically mark About as shown on initial first access
+  useEffect(() => {
+    if (shouldShowAboutOnStartup()) {
+      markAboutAsShown();
+    }
+  }, []);
+
+  const handleCloseAbout = useCallback(() => {
+    setIsAboutOpen(false);
+    markAboutAsShown();
+  }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
     const id = Date.now();
@@ -270,6 +286,15 @@ export const App: React.FC = () => {
     },
     showToast,
   });
+
+  // Editor zoom & line height management hook (persisted in LocalStorage)
+  const {
+    containerRef: editorContainerRef,
+    fontSize: editorFontSize,
+    lineHeight: editorLineHeight,
+    resetZoom: resetEditorZoom,
+    zoomPercentage: editorZoomPercentage,
+  } = useEditorZoom({ diffEditorRef });
 
   // WinMerge standard: Open empty side-by-side file comparison tab
   const handleNewEmptyCompare = useCallback(() => {
@@ -657,6 +682,7 @@ export const App: React.FC = () => {
           onOpenCompare={() => setIsOpenDialogOpen(true)}
           onNewCompare={handleNewEmptyCompare}
           onLoadDemo={() => (window as any).__loadSampleFolderCompare?.()}
+          onOpenAbout={() => setIsAboutOpen(true)}
         />
       ) : activeTab?.type === 'folder' ? (
         <FolderDiffTableView
@@ -670,9 +696,13 @@ export const App: React.FC = () => {
           onOpenFileDiff={handleOpenFileDiffFromTable}
           onCopyItem={handleCopyFolderItem}
           onDeleteItem={handleDeleteFolderItem}
+          onOpenAbout={() => setIsAboutOpen(true)}
         />
       ) : (
         <FileDiffWorkspace
+          containerRef={editorContainerRef}
+          fontSize={editorFontSize}
+          lineHeight={editorLineHeight}
           leftFile={leftFile}
           rightFile={rightFile}
           language={language}
@@ -691,6 +721,9 @@ export const App: React.FC = () => {
           leftFile={leftFile}
           rightFile={rightFile}
           language={language}
+          zoomPercentage={editorZoomPercentage}
+          onResetZoom={resetEditorZoom}
+          onOpenAbout={() => setIsAboutOpen(true)}
         />
       )}
 
@@ -726,6 +759,12 @@ export const App: React.FC = () => {
         onCompareFolders={handleCompareFoldersFromDialog}
         currentLeftFile={leftFile}
         currentRightFile={rightFile}
+      />
+
+      {/* Floating About Dialog */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={handleCloseAbout}
       />
 
       {/* Toast Notifications */}

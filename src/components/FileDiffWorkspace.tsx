@@ -17,6 +17,9 @@ export interface FileDiffWorkspaceProps {
   onEditorDidMount?: DiffEditorProps['onMount'];
   onDropItem: (file: File, handle?: FileSystemFileHandle, side?: 'left' | 'right') => void;
   theme?: 'dark' | 'light';
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  fontSize?: number;
+  lineHeight?: number;
 }
 
 export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
@@ -29,6 +32,9 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
   onEditorDidMount,
   onDropItem,
   theme = 'light',
+  containerRef,
+  fontSize,
+  lineHeight,
 }) => {
   const { t } = useTranslation();
   const [dragSide, setDragSide] = useState<'left' | 'right' | null>(null);
@@ -93,6 +99,7 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
       </div>
 
       <div
+        ref={containerRef}
         className="diff-wrapper"
         onDragOver={(e) => {
           e.preventDefault();
@@ -129,13 +136,14 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
               renderSideBySide,
               ignoreTrimWhitespace,
               automaticLayout: true,
-              fontSize: 13,
+              fontSize: fontSize ?? 13,
+              lineHeight: lineHeight ?? 18,
               fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
               minimap: { enabled: true },
               scrollBeyondLastLine: false,
               diffCodeLens: true,
               contextmenu: false,
-              mouseWheelZoom: true,
+              mouseWheelZoom: false,
             }}
           />
         )}

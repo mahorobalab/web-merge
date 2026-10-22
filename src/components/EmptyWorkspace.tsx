@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitCompare, FolderOpen, FilePlus2, Play } from 'lucide-react';
+import { GitCompare, FolderOpen, FilePlus2, Play, Info } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import './EmptyWorkspace.css';
 
@@ -7,12 +7,14 @@ interface EmptyWorkspaceProps {
   onOpenCompare: () => void;
   onNewCompare?: () => void;
   onLoadDemo?: () => void;
+  onOpenAbout?: () => void;
 }
 
 export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
   onOpenCompare,
   onNewCompare,
   onLoadDemo,
+  onOpenAbout,
 }) => {
   const { t, locale } = useTranslation();
 
@@ -85,6 +87,20 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
             <span className="shortcut-desc">{locale === 'ja' ? '次 / 前の差分へジャンプ' : 'Next / Prev Diff'}</span>
           </div>
         </div>
+
+        {onOpenAbout && (
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              type="button"
+              className="statusbar-about-button"
+              onClick={onOpenAbout}
+              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+            >
+              <Info size={14} />
+              <span>{locale === 'ja' ? 'WebMerge について (About)' : 'About WebMerge'}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

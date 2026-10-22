@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Sun, Moon } from 'lucide-react';
+import { GitCompare, ShieldCheck, CheckCircle2, AlertCircle, Sun, Moon } from 'lucide-react';
 import { useTranslation, type Locale } from '../i18n/I18nContext';
 import { LanguageDropdown } from './LanguageDropdown';
 
@@ -30,10 +30,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <header className="app-header">
       <div className="brand-section">
         <div className="brand-logo">
-          <ArrowRightLeft size={20} />
-          <span>{t.app.title}</span>
+          <div className="brand-logo-badge">
+            <GitCompare size={17} />
+          </div>
+          <div className="brand-text-wrapper">
+            <span className="brand-title">{t.app.title}</span>
+            <span className="brand-subtitle">inspired by WinMerge</span>
+          </div>
         </div>
-        <span className="brand-badge">{t.app.tagline}</span>
       </div>
 
       <div className="stats-section">

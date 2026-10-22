@@ -11,6 +11,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Trash2,
+  Info,
 } from 'lucide-react';
 import type { DiffItem, DiffSummary } from '../utils/diffMatcher';
 import {
@@ -36,6 +37,7 @@ export interface FolderDiffTableViewProps {
   onOpenFileDiff: (item: DiffItem) => void;
   onCopyItem?: (node: FolderTreeNode, direction: 'leftToRight' | 'rightToLeft') => void;
   onDeleteItem?: (node: FolderTreeNode, side: 'left' | 'right' | 'both') => void;
+  onOpenAbout?: () => void;
 }
 
 type FilterType = 'all' | 'diffs' | 'modified' | 'left-only' | 'right-only' | 'identical';
@@ -65,9 +67,10 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
   onOpenFileDiff,
   onCopyItem,
   onDeleteItem,
+  onOpenAbout,
 }) => {
   const { t, locale } = useTranslation();
-  const { containerRef, fontSize, resetFontSize, zoomPercentage } = useTableZoom();
+  const { containerRef, fontSize, rowPadding, resetFontSize, zoomPercentage } = useTableZoom();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -258,7 +261,10 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
     <div
       ref={containerRef}
       className="folder-diff-table-container"
-      style={{ '--table-font-size': `${fontSize}px` } as React.CSSProperties}
+      style={{
+        '--table-font-size': `${fontSize}px`,
+        '--table-row-padding': `${rowPadding}px`,
+      } as React.CSSProperties}
     >
       {/* Table Toolbar & Path Info */}
       <div className="folder-table-toolbar">
@@ -535,10 +541,22 @@ export const FolderDiffTableView: React.FC<FolderDiffTableViewProps> = ({
             type="button"
             className="table-zoom-indicator"
             onClick={resetFontSize}
-            title={locale === 'ja' ? '文字サイズリセット (Ctrl+マウスホイールで拡大縮小, Ctrl+0でリセット)' : 'Reset font size (Ctrl+MouseWheel to zoom, Ctrl+0 to reset)'}
+            title={locale === 'ja' ? '表示リセット (Ctrl+ホイール: 文字サイズ, Shift+ホイール: 行間, Ctrl+0: リセット)' : 'Reset view (Ctrl+Wheel: Font size, Shift+Wheel: Line spacing, Ctrl+0: Reset)'}
           >
             <span>{zoomPercentage}</span>
           </button>
+          {onOpenAbout && (
+            <button
+              type="button"
+              className="statusbar-about-button"
+              onClick={onOpenAbout}
+              title={t.app?.title ? `About ${t.app.title}` : 'About'}
+              aria-label="About"
+            >
+              <Info size={13} />
+              <span>About</span>
+            </button>
+          )}
         </div>
       </div>
 
