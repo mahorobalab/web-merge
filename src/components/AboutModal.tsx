@@ -10,6 +10,7 @@ import {
   Code2,
   Boxes,
   Info,
+  Terminal,
 } from 'lucide-react';
 import {
   APP_INFO,
@@ -77,6 +78,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         return <Save size={20} />;
       case 'FolderGit2':
         return <FolderGit2 size={20} />;
+      case 'Terminal':
+        return <Terminal size={20} />;
       default:
         return <GitCompare size={20} />;
     }
@@ -183,6 +186,35 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Offline & Local Execution Guide */}
+              <div className="about-offline-guide-card">
+                <div className="about-offline-guide-header">
+                  <div className="about-offline-icon">
+                    <Terminal size={18} />
+                  </div>
+                  <div>
+                    <h4>{labels.offlineGuideTitle}</h4>
+                    <p>{labels.offlineGuideDesc}</p>
+                  </div>
+                </div>
+                <div className="about-offline-methods">
+                  <div className="about-offline-method-item">
+                    <span className="about-offline-bullet">▶</span>
+                    <div>
+                      <code>python serve.py</code> (or <code>start.bat</code> / <code>start.sh</code>)
+                      <p>{labels.offlineMethodPython}</p>
+                    </div>
+                  </div>
+                  <div className="about-offline-method-item">
+                    <span className="about-offline-bullet">▶</span>
+                    <div>
+                      <strong>PWA (Progressive Web App)</strong>
+                      <p>{labels.offlineMethodPwa}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

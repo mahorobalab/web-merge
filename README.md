@@ -4,12 +4,12 @@
 
 WebMerge is an open-source web application designed to bring the power of WinMerge to any platform (macOS, Linux, ChromeOS, Windows) with zero installation, zero server communication, and direct local file saving via the File System Access API.
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-web--merge.mahorobalab.workers.dev-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://web-merge.mahorobalab.workers.dev/)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-webmerge.org-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://webmerge.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
-[![Zero-Server](https://img.shields.io/badge/Zero--Server-100%25_Local--First-10B981?style=for-the-badge)](https://web-merge.mahorobalab.workers.dev/)
+[![Zero-Server](https://img.shields.io/badge/Zero--Server-100%25_Local--First-10B981?style=for-the-badge)](https://webmerge.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-🚀 **[Experience Live Demo Instantly!](https://web-merge.mahorobalab.workers.dev/)** _(Zero installation required)_
+🚀 **[Experience Live Demo Instantly!](https://webmerge.org/)** _(Zero installation required)_
 
 [日本語ドキュメント (Japanese Document)](./README_ja.md)
 
@@ -79,6 +79,45 @@ npm test
 ```bash
 npm run build
 ```
+
+---
+
+## 🔒 Running Completely Offline (Zero-Server / Local Standalone)
+
+WebMerge is designed from the ground up to run completely isolated from external networks (ideal for corporate intranets, air-gapped environments, or confidential source code reviews).
+
+### Option 1: Standalone Offline Package (No Node.js Required!) 📦
+
+If you don't want to install Node.js, download the pre-built bundle from GitHub Releases:
+
+1. Download `web-merge-offline.zip` from **[Releases](https://github.com/mahorobalab/web-merge/releases)**.
+2. Unzip the package to any folder.
+3. Launch with Python 3 (standard library only, zero dependencies):
+   - **Windows**: Double-click **`start.bat`** (or run `python serve.py`)
+   - **macOS / Linux**: Run `./start.sh` (or `python3 serve.py`)
+4. Your default browser will automatically open at `http://localhost:8000` with WebMerge running 100% locally.
+
+### Option 2: Local Server from Source (`python serve.py`) 🐍
+
+If you've cloned this repository:
+
+```bash
+# 1. Build the production assets once
+npm run build
+
+# 2. Run the included zero-dependency Python server
+python serve.py
+# (or double-click start.bat on Windows, or ./start.sh on macOS/Linux)
+```
+
+> **💡 Smart Build Assistant:**
+> If `./dist` hasn't been built yet, running `python serve.py` will automatically detect your local `npm` and prompt you to run `npm run build` on the fly!
+
+### Option 3: Install as PWA (Desktop App) 📱
+
+1. Visit **[Live WebMerge](https://webmerge.org/)** in Google Chrome or Microsoft Edge.
+2. Click the **Install** icon in the browser address bar.
+3. WebMerge is now installed on your desktop and works fully offline even when disconnected from the internet!
 
 ---
 

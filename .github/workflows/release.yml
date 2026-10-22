@@ -1,0 +1,104 @@
+name: Release & Offline Bundle
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Create Offline Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Prepare Offline Package
+        run: |
+          mkdir -p web-merge-offline
+          cp -r dist web-merge-offline/
+          cp serve.py web-merge-offline/
+          cp start.bat web-merge-offline/
+          cp start.sh web-merge-offline/
+          cp LICENSE web-merge-offline/
+          
+          # Create quick offline instructions
+          cat << 'EOF' > web-merge-offline/README_OFFLINE.txt
+          ==========================================================
+            WebMerge - Standalone Offline Package
+            ブラウザ完結型・完全ローカル差分比較 & マージツール
+          ==========================================================
+
+          [How to Run / 起動方法]
+
+          ● Windows:
+            Double-click "start.bat" or run in terminal:
+            start.bat をダブルクリックするか、ターミナルで実行してください:
+            > python serve.py
+
+          ● macOS / Linux:
+            Run in terminal:
+            ターミナルで以下を実行してください:
+            $ chmod +x start.sh
+            $ ./start.sh
+
+          Requirements:
+            Python 3.7+ installed. Zero other dependencies!
+            (Node.js is NOT required. Everything is pre-built!)
+
+          Privacy & Security:
+            100% Client-Side. No telemetry, no external server calls.
+            All diffing and file saving are completely local.
+          ==========================================================
+          EOF
+
+          zip -r web-merge-offline.zip web-merge-offline
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'WebMerge Latest Build (Standalone Offline)' }}
+          target_commitish: ${{ github.sha }}
+          body: |
+            ## 🔀 WebMerge - Offline Standalone Package
+
+            Download `web-merge-offline.zip` below to run WebMerge completely offline on any device with **zero dependencies** (powered by Python 3 standard library).
+
+            ### How to Run:
+            - **Windows**: Double-click `start.bat` (or run `python serve.py`)
+            - **macOS / Linux**: Run `./start.sh` (or `python3 serve.py`)
+
+            *Automated build from commit: ${{ github.sha }}*
+          files: web-merge-offline.zip
+          draft: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          make_latest: ${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}
+
+      - name: Upload Artifact (for workflow_dispatch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-merge-offline
+          path: web-merge-offline.zip

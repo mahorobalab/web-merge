@@ -4,7 +4,7 @@ import {
   openFileWithPicker,
   readFileObject,
   saveFileWithHandle,
-  downloadFileContent,
+  exportFileWithPicker,
   isFileSystemAccessSupported,
 } from './core/fileStorage';
 import type { FileEntry } from './utils/diffMatcher';
@@ -467,10 +467,34 @@ export const App: React.FC = () => {
         }
       } else {
         const downloadName = file.name.includes('.') ? file.name : `${file.name}.txt`;
-        downloadFileContent(downloadName, editorValue);
-        updateFileContentAfterSave(side, editorValue, Date.now());
-        markActiveTabDirty(false);
-        showToast(t.toasts.downloaded(downloadName));
+        const result = await exportFileWithPicker(editorValue, downloadName, {
+          description: 'Text Document',
+          mimeType: 'text/plain;charset=utf-8',
+          extension: downloadName.includes('.') ? `.${downloadName.split('.').pop()}` : '.txt',
+        });
+        if (!result.canceled) {
+          if (side === 'left') {
+            setLeftFile((prev) => ({
+              ...prev,
+              name: result.fileName,
+              content: editorValue,
+              handle: result.handle ?? prev.handle,
+              isDirty: false,
+              lastModified: Date.now(),
+            }));
+          } else {
+            setRightFile((prev) => ({
+              ...prev,
+              name: result.fileName,
+              content: editorValue,
+              handle: result.handle ?? prev.handle,
+              isDirty: false,
+              lastModified: Date.now(),
+            }));
+          }
+          markActiveTabDirty(false);
+          showToast(t.toasts.downloaded(result.fileName));
+        }
       }
     } catch (err: any) {
       showToast(t.toasts.saveError(err.message), 'error');
@@ -500,7 +524,7 @@ export const App: React.FC = () => {
   };
 
   // Export handlers
-  const handleExportHtmlReport = () => {
+  const handleExportHtmlReport = async () => {
     const leftContent = diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
     const rightContent = diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
 
@@ -513,11 +537,17 @@ export const App: React.FC = () => {
     });
 
     const reportName = `webmerge_report_${Date.now()}.html`;
-    downloadFileContent(reportName, html);
-    showToast(t.toasts.exportedReport(reportName));
+    const result = await exportFileWithPicker(html, reportName, {
+      description: 'HTML Diff Report',
+      mimeType: 'text/html;charset=utf-8',
+      extension: '.html',
+    });
+    if (!result.canceled) {
+      showToast(t.toasts.exportedReport(result.fileName));
+    }
   };
 
-  const handleExportPatch = () => {
+  const handleExportPatch = async () => {
     const leftContent = diffEditorRef.current?.getOriginalEditor().getValue() ?? leftFile.content;
     const rightContent = diffEditorRef.current?.getModifiedEditor().getValue() ?? rightFile.content;
 
@@ -529,8 +559,14 @@ export const App: React.FC = () => {
     );
 
     const patchName = `webmerge_diff_${Date.now()}.patch`;
-    downloadFileContent(patchName, patch);
-    showToast(t.toasts.exportedPatch(patchName));
+    const result = await exportFileWithPicker(patch, patchName, {
+      description: 'Unified Diff Patch',
+      mimeType: 'text/plain;charset=utf-8',
+      extension: '.patch',
+    });
+    if (!result.canceled) {
+      showToast(t.toasts.exportedPatch(result.fileName));
+    }
   };
 
   // Drag and drop file loading

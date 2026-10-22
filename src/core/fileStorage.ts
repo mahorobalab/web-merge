@@ -141,17 +141,96 @@ export async function saveFileWithHandle(
   }
 }
 
+export interface ExportFileOptions {
+  description?: string;
+  mimeType?: string;
+  extension?: string;
+}
+
+export interface ExportFileResult {
+  success: boolean;
+  canceled?: boolean;
+  fileName: string;
+  handle?: FileSystemFileHandle;
+}
+
+/**
+ * Exports text content using the native "Save As" file picker dialog (File System Access API).
+ * Allows the user to select the destination folder and verify the filename.
+ * Automatically falls back to browser download if unsupported.
+ */
+export async function exportFileWithPicker(
+  content: string,
+  suggestedName: string,
+  options?: ExportFileOptions
+): Promise<ExportFileResult> {
+  const mimeType = options?.mimeType || 'text/plain;charset=utf-8';
+  const description = options?.description || 'Text Document';
+  const extension =
+    options?.extension ||
+    (suggestedName.includes('.') ? `.${suggestedName.split('.').pop()}` : '.txt');
+
+  if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description,
+            accept: {
+              [mimeType.split(';')[0]]: [extension],
+            },
+          },
+        ],
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+
+      return {
+        success: true,
+        fileName: handle.name || suggestedName,
+        handle,
+      };
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // User deliberately canceled the save picker
+        return { success: false, canceled: true, fileName: suggestedName };
+      }
+      console.warn('showSaveFilePicker failed, falling back to download:', err);
+    }
+  }
+
+  // Fallback download
+  downloadFileContent(suggestedName, content, mimeType);
+  return { success: true, fileName: suggestedName };
+}
+
 /**
  * Fallback download function for browsers without write access or for D&D files without handles.
+ * Important: URL.revokeObjectURL must NOT be called immediately in Chromium, otherwise
+ * the download attribute is ignored and the file is saved as a raw GUID without an extension.
  */
-export function downloadFileContent(fileName: string, content: string): void {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+export function downloadFileContent(
+  fileName: string,
+  content: string,
+  mimeType: string = 'text/plain;charset=utf-8'
+): void {
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = fileName;
+  anchor.style.display = 'none';
   document.body.appendChild(anchor);
   anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+
+  // Defer cleanup so the browser download engine can initialize the file and read the suggested filename
+  setTimeout(() => {
+    if (document.body.contains(anchor)) {
+      document.body.removeChild(anchor);
+    }
+    URL.revokeObjectURL(url);
+  }, 60000);
 }

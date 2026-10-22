@@ -4,12 +4,12 @@
 
 WebMerge は、WinMerge の強力な比較・マージ機能を、インストール不要・外部通信ゼロでどのOS（macOS, Linux, ChromeOS, Windows）でも利用可能にするオープンソースWebアプリケーションです。
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-web--merge.mahorobalab.workers.dev-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://web-merge.mahorobalab.workers.dev/)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-webmerge.org-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://webmerge.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
-[![Zero-Server](https://img.shields.io/badge/完全ローカル-Zero--Server-10B981?style=for-the-badge)](https://web-merge.mahorobalab.workers.dev/)
+[![Zero-Server](https://img.shields.io/badge/完全ローカル-Zero--Server-10B981?style=for-the-badge)](https://webmerge.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-🚀 **[インストール不要！今すぐライブデモを体験](https://web-merge.mahorobalab.workers.dev/)**
+🚀 **[インストール不要！今すぐライブデモを体験](https://webmerge.org/)**
 
 [English Document](./README.md)
 
@@ -73,6 +73,45 @@ npm run build
 
 > **💡 VS Code / Antigravity での開発:**
 > リポジトリを開いて **`F5` キー** を押すだけで、Vite 開発サーバーのバックグラウンド起動とブラウザ（Chrome / Edge）のデバッグセッションが自動連携して立ち上がります。
+
+---
+
+## 🔒 完全オフライン・ローカル環境での実行方法（Zero-Server）
+
+WebMerge は外部通信を一切行わないアーキテクチャのため、社内イントラネットやエアギャップ環境、機密ソースコードを扱うオフライン環境でも単体で安全に動かせます。
+
+### 方法 1: 事前ビルド済みオフライン配布パッケージ（Node.js 不要！）📦
+
+Node.js や npm のインストールなしですぐに使いたい場合：
+
+1. GitHub の **[Releases](https://github.com/mahorobalab/web-merge/releases)** から `web-merge-offline.zip` をダウンロードします。
+2. 任意のフォルダに ZIP を解凍します。
+3. Python 3 で起動します（標準ライブラリのみ使用、追加インストール不要）：
+   - **Windows の場合**: **`start.bat`** をダブルクリック（またはターミナルで `python serve.py`）
+   - **macOS / Linux の場合**: ターミナルで `./start.sh`（または `python3 serve.py`）
+4. お使いのデフォルトブラウザが自動的に開き（`http://localhost:8000`）、完全ローカルで WebMerge が即座に利用可能です。
+
+### 方法 2: ソースコードから起動する場合 (`python serve.py`) 🐍
+
+本リポジトリを `git clone` して利用する場合：
+
+```bash
+# 1. 静的アセットをビルド（初回のみ）
+npm run build
+
+# 2. 同梱の Python 簡易サーバーを起動
+python serve.py
+# (または Windows なら start.bat、macOS/Linux なら ./start.sh を実行)
+```
+
+> **💡 スマートビルド機能:**
+> `./dist` がまだビルドされていない状態で `python serve.py` を実行すると、環境内の `npm` を自動検出し、その場でビルドを実行するか確認して自動起動してくれます。
+
+### 方法 3: PWA（デスクトップアプリ）としてインストール 📱
+
+1. Google Chrome または Microsoft Edge で **[WebMerge](https://webmerge.org/)** を開きます。
+2. アドレスバー右側に表示される「**インストール**」アイコンをクリックします。
+3. PCのデスクトップアプリとして登録され、インターネット未接続（完全オフライン）の時でも通常のアプリと同じように起動できます。
 
 ---
 

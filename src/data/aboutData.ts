@@ -90,6 +90,17 @@ export const APP_INFO: WebMergeAppInfo = {
         ja: 'VS Codeと同等の構文ハイライト、左右分割/インライン表示切替、空白・改行無視、ワンクリックマージ操作をサポート。',
       },
     },
+    {
+      iconName: 'Terminal',
+      title: {
+        en: 'Zero-Dependency Offline Run',
+        ja: '完全ローカル・オフライン起動対応',
+      },
+      desc: {
+        en: 'Run anywhere with no dependencies using the included Python server (python serve.py), pre-built release package, or install as an offline PWA app.',
+        ja: 'Python標準機能による簡易サーバー（python serve.py）や、事前ビルド済み配布パッケージ、またはPWAインストールにより、完全オフライン環境でも即使えます。',
+      },
+    },
   ],
 };
 
@@ -193,6 +204,10 @@ export interface AboutModalLabels {
   tabLicenses: string;
   viewOnGitHub: string;
   featuresTitle: string;
+  offlineGuideTitle: string;
+  offlineGuideDesc: string;
+  offlineMethodPython: string;
+  offlineMethodPwa: string;
   librariesTitle: string;
   searchLibrariesPlaceholder: string;
   categoryAll: string;
@@ -218,6 +233,10 @@ export function getAboutLabels(locale: string): AboutModalLabels {
       tabLicenses: 'オープンソースライブラリ',
       viewOnGitHub: 'GitHub で見る',
       featuresTitle: '主な特長 & アーキテクチャ',
+      offlineGuideTitle: 'ローカル・完全オフラインでの実行方法',
+      offlineGuideDesc: '社内イントラネットやエアギャップ環境でも、外部通信なしでローカル単体起動できます。',
+      offlineMethodPython: 'Python 簡易サーバー: python serve.py（または start.bat / start.sh）を実行するだけで自動起動。',
+      offlineMethodPwa: 'PWA インストール: ブラウザのアドレスバーから「インストール」すれば、ネット切断時もデスクトップアプリとして利用可能。',
       librariesTitle: '使用しているオープンソースソフトウェア (OSS)',
       searchLibrariesPlaceholder: 'ライブラリ名や用途で検索...',
       categoryAll: 'すべて',
@@ -240,6 +259,10 @@ export function getAboutLabels(locale: string): AboutModalLabels {
     tabLicenses: 'Open Source Notices',
     viewOnGitHub: 'View on GitHub',
     featuresTitle: 'Core Capabilities & Architecture',
+    offlineGuideTitle: 'How to Run Locally & Offline',
+    offlineGuideDesc: 'WebMerge can run completely offline without internet connectivity or external servers.',
+    offlineMethodPython: 'Python Offline Server: Run `python serve.py` (or start.bat / start.sh) to serve pre-built assets locally.',
+    offlineMethodPwa: 'Install as PWA: Click "Install" in your browser address bar to use WebMerge offline as a standalone desktop app.',
     librariesTitle: 'Third-Party Open Source Software',
     searchLibrariesPlaceholder: 'Search libraries or keywords...',
     categoryAll: 'All',
