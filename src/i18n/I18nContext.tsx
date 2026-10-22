@@ -55,6 +55,8 @@ export type Locale =
   | 'fa'
   | 'he';
 
+export type LocalePreference = 'auto' | Locale;
+
 export interface LocaleInfo {
   code: Locale;
   nativeName: string;
@@ -91,6 +93,37 @@ export const SUPPORTED_LOCALES: LocaleInfo[] = [
   { code: 'he', nativeName: 'עברית', englishName: 'Hebrew', dir: 'rtl' },
 ];
 
+/**
+ * Detect the user's best matching locale based on browser settings.
+ */
+export function detectBrowserLocale(): Locale {
+  if (typeof navigator === 'undefined') return 'en';
+  const langs = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
+  for (const lang of langs) {
+    if (!lang) continue;
+    const lower = lang.toLowerCase();
+    const exact = SUPPORTED_LOCALES.find((l) => l.code.toLowerCase() === lower);
+    if (exact) return exact.code;
+
+    if (
+      lower.startsWith('zh-tw') ||
+      lower.startsWith('zh-hk') ||
+      lower.startsWith('zh-mo') ||
+      lower.startsWith('zh-hant')
+    ) {
+      return 'zh-TW';
+    }
+    if (lower.startsWith('zh')) {
+      return 'zh-CN';
+    }
+
+    const prefix = lower.split('-')[0];
+    const prefixMatch = SUPPORTED_LOCALES.find((l) => l.code.toLowerCase() === prefix);
+    if (prefixMatch) return prefixMatch.code;
+  }
+  return 'en';
+}
+
 const translationsMap: Record<Locale, Translations> = {
   en,
   ja,
@@ -122,13 +155,17 @@ const translationsMap: Record<Locale, Translations> = {
 
 interface I18nContextType {
   locale: Locale;
-  setLocale: (locale: Locale) => void;
+  preference: LocalePreference;
+  detectedLocale: Locale;
+  setLocale: (preference: LocalePreference) => void;
   t: Translations;
   supportedLocales: LocaleInfo[];
 }
 
 const I18nContext = createContext<I18nContextType>({
   locale: 'en',
+  preference: 'auto',
+  detectedLocale: 'en',
   setLocale: () => {},
   t: en,
   supportedLocales: SUPPORTED_LOCALES,
@@ -137,37 +174,43 @@ const I18nContext = createContext<I18nContextType>({
 const STORAGE_KEY = 'webmerge_locale';
 
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [locale, setLocaleState] = useState<Locale>(() => {
+  const [preference, setPreference] = useState<LocalePreference>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY) as Locale;
-      if (saved && translationsMap[saved]) {
-        return saved;
+      const saved = localStorage.getItem(STORAGE_KEY) as LocalePreference | null;
+      if (saved === 'auto') return 'auto';
+      if (saved && translationsMap[saved as Locale]) {
+        return saved as Locale;
       }
     }
-    return 'en';
+    // Default to auto detection
+    return 'auto';
   });
 
-  const setLocale = (newLocale: Locale) => {
-    if (translationsMap[newLocale]) {
-      setLocaleState(newLocale);
+  const detectedLocale = detectBrowserLocale();
+  const effectiveLocale: Locale = preference === 'auto' ? detectedLocale : preference;
+
+  const setLocale = (newPreference: LocalePreference) => {
+    if (newPreference === 'auto' || translationsMap[newPreference]) {
+      setPreference(newPreference);
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, newLocale);
+        localStorage.setItem(STORAGE_KEY, newPreference);
       }
     }
   };
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.documentElement.lang = locale;
-      const localeInfo = SUPPORTED_LOCALES.find((l) => l.code === locale);
-      document.documentElement.dir = localeInfo?.dir === 'rtl' ? 'rtl' : 'ltr';
+      document.documentElement.lang = effectiveLocale;
+      // Do NOT set documentElement.dir = 'rtl' because it breaks Monaco editor mouse coordinates, cursor positioning, and full UI responsiveness
     }
-  }, [locale]);
+  }, [effectiveLocale]);
 
   const value = {
-    locale,
+    locale: effectiveLocale,
+    preference,
+    detectedLocale,
     setLocale,
-    t: translationsMap[locale] || en,
+    t: translationsMap[effectiveLocale] || en,
     supportedLocales: SUPPORTED_LOCALES,
   };
 

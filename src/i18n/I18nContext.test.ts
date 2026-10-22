@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SUPPORTED_LOCALES } from './I18nContext';
+import { SUPPORTED_LOCALES, detectBrowserLocale } from './I18nContext';
 import { en } from './locales/en';
 import { ja } from './locales/ja';
 import { zhCN } from './locales/zh-CN';
@@ -41,6 +41,44 @@ describe('I18n Localization Suite', () => {
     expect(rtlLocales).toContain('fa');
     expect(rtlLocales).toContain('he');
     expect(rtlLocales).toHaveLength(3);
+  });
+
+  it('detects browser language accurately', () => {
+    const originalNavigator = globalThis.navigator;
+    try {
+      // Mock Japanese browser
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { language: 'ja-JP', languages: ['ja-JP', 'ja', 'en'] },
+        configurable: true,
+      });
+      expect(detectBrowserLocale()).toBe('ja');
+
+      // Mock German browser
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { language: 'de-DE', languages: ['de-DE', 'de'] },
+        configurable: true,
+      });
+      expect(detectBrowserLocale()).toBe('de');
+
+      // Mock Traditional Chinese
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { language: 'zh-TW', languages: ['zh-TW', 'zh'] },
+        configurable: true,
+      });
+      expect(detectBrowserLocale()).toBe('zh-TW');
+
+      // Fallback to English for unknown language
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { language: 'xx-YY', languages: ['xx-YY'] },
+        configurable: true,
+      });
+      expect(detectBrowserLocale()).toBe('en');
+    } finally {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: originalNavigator,
+        configurable: true,
+      });
+    }
   });
 
   const allLocales = [

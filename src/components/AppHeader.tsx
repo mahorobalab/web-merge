@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Globe, ChevronDown, Sun, Moon } from 'lucide-react';
+import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Sun, Moon } from 'lucide-react';
 import { useTranslation, type Locale } from '../i18n/I18nContext';
+import { LanguageDropdown } from './LanguageDropdown';
 
 export interface AppHeaderProps {
   hasActiveTab?: boolean;
@@ -20,20 +21,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   folderDiffCount,
   isFileMatch,
   locale,
-  onChangeLocale,
   theme,
   onToggleTheme,
 }) => {
-  const { t, setLocale, supportedLocales } = useTranslation();
-
-  const handleLocaleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLocale = e.target.value as Locale;
-    if (onChangeLocale) {
-      onChangeLocale(nextLocale);
-    } else {
-      setLocale(nextLocale);
-    }
-  };
+  const { t } = useTranslation();
 
   return (
     <header className="app-header">
@@ -79,26 +70,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         )}
 
-        {/* Language Select Dropdown */}
-        <div
-          className="language-select-wrapper"
-          title="Select Language / 言語選択"
-        >
-          <Globe size={13} className="language-icon" />
-          <select
-            className="language-select"
-            value={locale}
-            onChange={handleLocaleChange}
-            aria-label="Select Language"
-          >
-            {supportedLocales.map((loc) => (
-              <option key={loc.code} value={loc.code}>
-                {loc.nativeName}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={11} className="language-chevron" />
-        </div>
+        {/* Language Dropdown */}
+        <LanguageDropdown />
 
         {/* Theme Toggle */}
         <button
