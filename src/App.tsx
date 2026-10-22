@@ -22,6 +22,7 @@ import { useDiffEditorMerge } from './hooks/useDiffEditorMerge';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { useFolderSync } from './hooks/useFolderSync';
 import { useFolderCompare } from './hooks/useFolderCompare';
+import { useSessionPersistence } from './hooks/useSessionPersistence';
 
 // Components
 import { AppHeader } from './components/AppHeader';
@@ -140,7 +141,9 @@ export const App: React.FC = () => {
     rightFolderName,
     setRightFolderName,
     leftDirHandle,
+    setLeftDirHandle,
     rightDirHandle,
+    setRightDirHandle,
     leftFallbackFiles,
     rightFallbackFiles,
     leftEntries,
@@ -181,6 +184,32 @@ export const App: React.FC = () => {
     leftEntries,
     rightEntries,
     setLeftEntries,
+    setRightEntries,
+    showToast,
+    locale,
+  });
+
+  // Session Persistence Hook (IndexedDB auto-save and restore)
+  useSessionPersistence({
+    tabs,
+    setTabs,
+    activeTabId,
+    setActiveTabId,
+    leftFile,
+    setLeftFile,
+    rightFile,
+    setRightFile,
+    leftFolderName,
+    setLeftFolderName,
+    rightFolderName,
+    setRightFolderName,
+    leftDirHandle,
+    setLeftDirHandle,
+    rightDirHandle,
+    setRightDirHandle,
+    leftEntries,
+    setLeftEntries,
+    rightEntries,
     setRightEntries,
     showToast,
     locale,

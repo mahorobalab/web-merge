@@ -12,6 +12,7 @@ import {
   type DiffSummary,
   type FileEntry,
 } from '../utils/diffMatcher';
+import { verifyHandlePermission } from '../core/sessionStorage';
 import type { SupportedEncoding } from '../utils/encodingDetector';
 import type { FileState, AppTab } from '../types/app';
 
@@ -145,6 +146,36 @@ export function useFolderCompare({
     setScanProgressText(t.folderPanel.scanning);
 
     try {
+      if (leftDirHandle) {
+        const hasLeftPerm = await verifyHandlePermission(leftDirHandle, 'read');
+        if (!hasLeftPerm) {
+          showToast(
+            locale === 'ja'
+              ? `左フォルダ「${leftDirHandle.name}」へのアクセスが許可されませんでした`
+              : `Access permission denied for left folder "${leftDirHandle.name}"`,
+            'warning'
+          );
+          setIsScanning(false);
+          setScanProgressText('');
+          return;
+        }
+      }
+
+      if (rightDirHandle) {
+        const hasRightPerm = await verifyHandlePermission(rightDirHandle, 'read');
+        if (!hasRightPerm) {
+          showToast(
+            locale === 'ja'
+              ? `右フォルダ「${rightDirHandle.name}」へのアクセスが許可されませんでした`
+              : `Access permission denied for right folder "${rightDirHandle.name}"`,
+            'warning'
+          );
+          setIsScanning(false);
+          setScanProgressText('');
+          return;
+        }
+      }
+
       let newLeftEntries: FileEntry[] = [];
       let newRightEntries: FileEntry[] = [];
 
@@ -254,6 +285,7 @@ export function useFolderCompare({
           leftModified = item.left.lastModified;
           leftSize = item.left.size;
           if (item.left.handle) {
+            await verifyHandlePermission(item.left.handle, 'read');
             const res = await readTextFromHandle(item.left.handle);
             leftContent = res.text;
             leftEncoding = res.encoding;
@@ -276,6 +308,7 @@ export function useFolderCompare({
           rightModified = item.right.lastModified;
           rightSize = item.right.size;
           if (item.right.handle) {
+            await verifyHandlePermission(item.right.handle, 'read');
             const res = await readTextFromHandle(item.right.handle);
             rightContent = res.text;
             rightEncoding = res.encoding;

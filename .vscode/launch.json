@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "WebMerge: Chrome でデバッグ起動 (F5)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: dev",
+      "sourceMaps": true
+    },
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "WebMerge: Edge でデバッグ起動",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: dev",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "WebMerge: 起動中 Chrome にアタッチ",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

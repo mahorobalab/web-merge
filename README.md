@@ -61,9 +61,12 @@ cd web-merge
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (or press F5 in VS Code to debug launch directly)
 npm run dev
 ```
+
+> **💡 Debugging in VS Code / Antigravity:**
+> Simply press **`F5`** to automatically launch the Vite dev server and open a Chrome or Edge debugging session.
 
 ### Running Tests
 
