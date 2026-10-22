@@ -601,7 +601,7 @@ export const App: React.FC = () => {
         folderDiffCount={folderDiffCount}
         isFileMatch={isMatch}
         locale={locale}
-        onToggleLocale={() => setLocale(locale === 'en' ? 'ja' : 'en')}
+        onChangeLocale={setLocale}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />

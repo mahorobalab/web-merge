@@ -27,7 +27,7 @@ interface UseFolderCompareOptions {
   setRightFile: React.Dispatch<React.SetStateAction<FileState>>;
   handleSelectTab: (tabId: string) => void;
   showToast: (message: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
-  locale: 'en' | 'ja';
+  locale: string;
   t: any;
   leftDirInputRef: React.RefObject<HTMLInputElement | null>;
   rightDirInputRef: React.RefObject<HTMLInputElement | null>;

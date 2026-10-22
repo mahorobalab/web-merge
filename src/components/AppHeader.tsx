@@ -1,14 +1,15 @@
 import React from 'react';
-import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Languages, Sun, Moon } from 'lucide-react';
-import { useTranslation } from '../i18n/I18nContext';
+import { ArrowRightLeft, ShieldCheck, CheckCircle2, AlertCircle, Globe, ChevronDown, Sun, Moon } from 'lucide-react';
+import { useTranslation, type Locale } from '../i18n/I18nContext';
 
 export interface AppHeaderProps {
   hasActiveTab?: boolean;
   isFolderTab: boolean;
   folderDiffCount: number;
   isFileMatch: boolean;
-  locale: 'en' | 'ja';
-  onToggleLocale: () => void;
+  locale: Locale;
+  onChangeLocale?: (locale: Locale) => void;
+  onToggleLocale?: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 }
@@ -19,11 +20,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   folderDiffCount,
   isFileMatch,
   locale,
-  onToggleLocale,
+  onChangeLocale,
   theme,
   onToggleTheme,
 }) => {
-  const { t } = useTranslation();
+  const { t, setLocale, supportedLocales } = useTranslation();
+
+  const handleLocaleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLocale = e.target.value as Locale;
+    if (onChangeLocale) {
+      onChangeLocale(nextLocale);
+    } else {
+      setLocale(nextLocale);
+    }
+  };
 
   return (
     <header className="app-header">
@@ -69,16 +79,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         )}
 
-        {/* Language Toggle */}
-        <button
-          className="btn-secondary"
-          style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-          onClick={onToggleLocale}
-          title="Switch Language / 言語切り替え"
+        {/* Language Select Dropdown */}
+        <div
+          className="language-select-wrapper"
+          title="Select Language / 言語選択"
         >
-          <Languages size={13} />
-          <span>{locale === 'en' ? 'JA' : 'EN'}</span>
-        </button>
+          <Globe size={13} className="language-icon" />
+          <select
+            className="language-select"
+            value={locale}
+            onChange={handleLocaleChange}
+            aria-label="Select Language"
+          >
+            {supportedLocales.map((loc) => (
+              <option key={loc.code} value={loc.code}>
+                {loc.nativeName}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={11} className="language-chevron" />
+        </div>
 
         {/* Theme Toggle */}
         <button

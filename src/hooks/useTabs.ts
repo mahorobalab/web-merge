@@ -109,7 +109,7 @@ export function useTabs({
 
   // Opens a new empty side-by-side diff editor tab (WinMerge standard)
   const openNewEmptyTab = useCallback(
-    (locale: 'en' | 'ja' = 'ja') => {
+    (locale: string = 'ja') => {
       const num = untitledCounterRef.current++;
       const newTab = createEmptyCompareTab({ counter: num, locale });
 

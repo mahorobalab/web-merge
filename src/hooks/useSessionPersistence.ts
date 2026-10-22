@@ -29,7 +29,7 @@ interface UseSessionPersistenceOptions {
   rightEntries: FileEntry[];
   setRightEntries: (entries: FileEntry[]) => void;
   showToast: (message: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
-  locale: 'en' | 'ja';
+  locale: string;
 }
 
 /**

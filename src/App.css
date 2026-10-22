@@ -72,6 +72,86 @@
   color: #f59e0b;
 }
 
+/* Language Select Dropdown */
+.language-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.language-select-wrapper:hover {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.language-icon {
+  color: #60a5fa;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.language-chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  pointer-events: none;
+  margin-left: -2px;
+}
+
+.language-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+.language-select option {
+  background-color: #27272a;
+  color: #f4f4f5;
+  padding: 4px;
+}
+
+[data-theme='light'] .language-select-wrapper {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme='light'] .language-select-wrapper:hover {
+  background-color: #f8fafc;
+  border-color: #2563eb;
+}
+
+[data-theme='light'] .language-icon {
+  color: #2563eb;
+}
+
+[data-theme='light'] .language-select {
+  color: #334155;
+}
+
+[data-theme='light'] .language-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 /* Toolbar */
 .app-toolbar {
   display: flex;

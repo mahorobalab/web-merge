@@ -1,8 +1,9 @@
 import type { AppTab, FileState } from '../types/app';
+import type { Locale } from '../i18n/I18nContext';
 
 export interface CreateEmptyCompareOptions {
   counter: number;
-  locale?: 'en' | 'ja';
+  locale?: Locale | string;
   timestamp?: number;
 }
 
