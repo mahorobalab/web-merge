@@ -36,7 +36,9 @@ import { DiffContextMenu } from './components/DiffContextMenu';
 import { OpenDialog } from './components/OpenDialog';
 import { EmptyWorkspace } from './components/EmptyWorkspace';
 import { AboutModal } from './components/AboutModal';
+import { MobileNoticeModal } from './components/MobileNoticeModal';
 import { shouldShowAboutOnStartup, markAboutAsShown } from './utils/aboutStorage';
+import { isMobileEnvironment, hasDismissedMobileNotice, setDismissedMobileNotice } from './utils/deviceDetector';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './App.css';
 
@@ -96,7 +98,26 @@ export const App: React.FC = () => {
   // Dialog & Notification state
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(() => shouldShowAboutOnStartup());
+  const [isMobileNoticeOpen, setIsMobileNoticeOpen] = useState(() => {
+    return !hasDismissedMobileNotice() && isMobileEnvironment();
+  });
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Listen for screen resize to show mobile notice if user resizes window down
+  useEffect(() => {
+    const handleResize = () => {
+      if (!hasDismissedMobileNotice() && isMobileEnvironment()) {
+        setIsMobileNoticeOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleDismissMobileNotice = useCallback(() => {
+    setIsMobileNoticeOpen(false);
+    setDismissedMobileNotice();
+  }, []);
 
   // Automatically mark About as shown on initial first access
   useEffect(() => {
@@ -801,6 +822,12 @@ export const App: React.FC = () => {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={handleCloseAbout}
+      />
+
+      {/* Mobile Environment Guidance Modal */}
+      <MobileNoticeModal
+        isOpen={isMobileNoticeOpen}
+        onDismiss={handleDismissMobileNotice}
       />
 
       {/* Toast Notifications */}
