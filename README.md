@@ -5,11 +5,12 @@
 WebMerge is an open-source web application designed to bring the power of WinMerge to any platform (macOS, Linux, ChromeOS, Windows) with zero installation, zero server communication, and direct local file saving via the File System Access API.
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-webmerge.org-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://webmerge.org/)
+[![Offline Package](https://img.shields.io/badge/📦_Offline_Package-Releases-f97316?style=for-the-badge&logo=github)](https://github.com/mahorobalab/web-merge/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 [![Zero-Server](https://img.shields.io/badge/Zero--Server-100%25_Local--First-10B981?style=for-the-badge)](https://webmerge.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-🚀 **[Experience Live Demo Instantly!](https://webmerge.org/)** _(Zero installation required)_
+🚀 **[Experience Live Web App](https://webmerge.org/)** | 📦 **[Download Offline Standalone (ZIP)](https://github.com/mahorobalab/web-merge/releases)**
 
 [日本語ドキュメント (Japanese Document)](./README_ja.md)
 
@@ -90,7 +91,10 @@ WebMerge is designed from the ground up to run completely isolated from external
 
 If you don't want to install Node.js, download the pre-built bundle from GitHub Releases:
 
-1. Download `web-merge-offline.zip` from **[Releases](https://github.com/mahorobalab/web-merge/releases)**.
+1. Download `web-merge-offline.zip` from **[Releases (Latest Releases)](https://github.com/mahorobalab/web-merge/releases)**.
+   > **⚠️ Note on ZIP Downloads:**
+   > The green **"Code > Download ZIP"** button on the GitHub repository homepage downloads the *raw source code* (without built `dist/` assets) and will not run out of the box.
+   > Always download `web-merge-offline.zip` from the **[Releases](https://github.com/mahorobalab/web-merge/releases)** page for the ready-to-run package.
 2. Unzip the package to any folder.
 3. Launch with Python 3 (standard library only, zero dependencies):
    - **Windows**: Double-click **`start.bat`** (or run `python serve.py`)

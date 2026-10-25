@@ -98,8 +98,8 @@ jobs:
             *Automated build from commit: ${{ github.sha }}*
           files: web-merge-offline.zip
           draft: false
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
-          make_latest: ${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}
+          prerelease: false
+          make_latest: true
 
       - name: Upload Artifact (for workflow_dispatch)
         uses: actions/upload-artifact@v4
