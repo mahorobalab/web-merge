@@ -311,19 +311,21 @@ export function useDiffEditorMerge({
   // Monaco Editor beforeMount config
   const handleEditorBeforeMount: DiffEditorProps['beforeMount'] = (monaco) => {
     monacoRef.current = monaco;
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: false,
-    });
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: false,
-    });
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-      target: monaco.languages.typescript.ScriptTarget.ESNext,
-      allowNonTextFiles: true,
-      isolatedModules: true,
-    });
+    if (monaco?.languages?.typescript) {
+      monaco.languages.typescript.javascriptDefaults?.setDiagnosticsOptions({
+        noSemanticValidation: true,
+        noSyntaxValidation: false,
+      });
+      monaco.languages.typescript.typescriptDefaults?.setDiagnosticsOptions({
+        noSemanticValidation: true,
+        noSyntaxValidation: false,
+      });
+      monaco.languages.typescript.typescriptDefaults?.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget?.ESNext ?? 99,
+        allowNonTextFiles: true,
+        isolatedModules: true,
+      });
+    }
   };
 
   // Monaco Editor mount callback

@@ -43,6 +43,10 @@ jobs:
           cp start.bat web-merge-offline/
           cp start.sh web-merge-offline/
           cp LICENSE web-merge-offline/
+
+          # Ensure Windows batch files have strict CRLF line endings and shell scripts are executable
+          sed -i 's/\r*$/\r/' web-merge-offline/start.bat
+          chmod +x web-merge-offline/start.sh
           
           # Create quick offline instructions
           cat << 'EOF' > web-merge-offline/README_OFFLINE.txt
