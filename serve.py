@@ -23,6 +23,14 @@ import threading
 import time
 import webbrowser
 
+# Ensure Windows terminal doesn't crash on UTF-8 / emoji prints under cp932
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 DEFAULT_PORT = 8000
 MAX_PORT_SEARCH = 20
 
@@ -81,7 +89,7 @@ def check_and_build(root_dir: Path) -> Path | None:
                 try:
                     subprocess.run([npm_cmd, "run", "build"], cwd=str(root_dir), check=True)
                     if (dist_dir / "index.html").is_file():
-                        print("\n[✓] Build completed successfully!\n")
+                        print("\n[OK] Build completed successfully!\n")
                         return dist_dir
                 except subprocess.SubprocessError as e:
                     print(f"\n[!] Build failed: {e}")
@@ -103,7 +111,7 @@ def open_browser_delayed(url: str, delay: float = 0.8):
     """Open the web browser after a brief delay so the server has started."""
     def _open():
         time.sleep(delay)
-        print(f"[✓] Opening browser at: {url}")
+        print(f"[OK] Opening browser at: {url}")
         webbrowser.open(url)
     threading.Thread(target=_open, daemon=True).start()
 
@@ -141,7 +149,7 @@ def main():
     )
 
     print("=" * 64)
-    print("  🔀 WebMerge - Local Offline Server")
+    print("  [WebMerge] Local Offline Server")
     print("  ブラウザ完結型・完全ローカル差分比較 & マージツール")
     print("=" * 64)
     print(f"  Serving Directory : {serve_dir}")

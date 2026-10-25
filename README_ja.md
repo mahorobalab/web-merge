@@ -5,11 +5,12 @@
 WebMerge は、WinMerge の強力な比較・マージ機能を、インストール不要・外部通信ゼロでどのOS（macOS, Linux, ChromeOS, Windows）でも利用可能にするオープンソースWebアプリケーションです。
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-webmerge.org-6366f1?style=for-the-badge&logo=cloudflare&logoColor=white)](https://webmerge.org/)
+[![Offline Package](https://img.shields.io/badge/📦_オフライン配布ZIP-Releases-f97316?style=for-the-badge&logo=github)](https://github.com/mahorobalab/web-merge/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 [![Zero-Server](https://img.shields.io/badge/完全ローカル-Zero--Server-10B981?style=for-the-badge)](https://webmerge.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-🚀 **[インストール不要！今すぐライブデモを体験](https://webmerge.org/)**
+🚀 **[インストール不要！今すぐWeb版を体験](https://webmerge.org/)** | 📦 **[オフライン版（ZIP）ダウンロード](https://github.com/mahorobalab/web-merge/releases)**
 
 [English Document](./README.md)
 
@@ -81,10 +82,13 @@ npm run build
 WebMerge は外部通信を一切行わないアーキテクチャのため、社内イントラネットやエアギャップ環境、機密ソースコードを扱うオフライン環境でも単体で安全に動かせます。
 
 ### 方法 1: 事前ビルド済みオフライン配布パッケージ（Node.js 不要！）📦
-
+ 
 Node.js や npm のインストールなしですぐに使いたい場合：
-
-1. GitHub の **[Releases](https://github.com/mahorobalab/web-merge/releases)** から `web-merge-offline.zip` をダウンロードします。
+ 
+1. GitHub の **[Releases (最新リリース)](https://github.com/mahorobalab/web-merge/releases)** から `web-merge-offline.zip` をダウンロードします。
+   > **⚠️ 注意（ダウンロードする ZIP の違い）:**
+   > GitHub リポジトリトップの緑色の **「Code > Download ZIP」** は開発用のソースコード（ビルド前のファイル群）のため、そのままでは起動しません。
+   > すぐに起動できる事前ビルド済みパッケージは、必ず **[Releases](https://github.com/mahorobalab/web-merge/releases)** ページから `web-merge-offline.zip` をダウンロードしてください。
 2. 任意のフォルダに ZIP を解凍します。
 3. Python 3 で起動します（標準ライブラリのみ使用、追加インストール不要）：
    - **Windows の場合**: **`start.bat`** をダブルクリック（またはターミナルで `python serve.py`）
