@@ -30,6 +30,9 @@
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.5",
-    "wrangler": "^4.151.1"
+    "wrangler": "^4.158.0"
+  },
+  "overrides": {
+    "dompurify": "^3.4.17"
   }
 }
