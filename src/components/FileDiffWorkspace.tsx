@@ -127,6 +127,8 @@ export const FileDiffWorkspace: React.FC<FileDiffWorkspaceProps> = ({
             language={language}
             original={leftFile.content}
             modified={rightFile.content}
+            keepCurrentOriginalModel={true}
+            keepCurrentModifiedModel={true}
             beforeMount={onEditorBeforeMount}
             onMount={onEditorDidMount}
             theme={theme === 'light' ? 'vs' : 'vs-dark'}

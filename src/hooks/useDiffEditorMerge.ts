@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { DiffEditorProps } from '@monaco-editor/react';
 import type { FileState, ContextMenuState } from '../types/app';
 import {
@@ -24,6 +24,24 @@ export function useDiffEditorMerge({
   const { t } = useTranslation();
   const diffEditorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
+
+  // Safely reset DiffEditor model before unmounting to prevent Monaco assertion error
+  useEffect(() => {
+    return () => {
+      if (diffEditorRef.current) {
+        try {
+          const editor = diffEditorRef.current;
+          const orig = editor.getOriginalEditor?.()?.getModel?.();
+          const mod = editor.getModifiedEditor?.()?.getModel?.();
+          editor.setModel(null);
+          orig?.dispose();
+          mod?.dispose();
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    };
+  }, []);
 
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
